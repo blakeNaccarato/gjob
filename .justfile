@@ -226,7 +226,12 @@ alias build := pkg-build
 # ✨ Release new version.
 [group('📦 Packaging')]
 pkg-release version:
-  {{pre}} git tag --sign -m {{quote(version)}} {{quote(version)}} && git push
+  {{pre}} {{_copier_update}} --defaults --data project_version='{{version}}'
+  {{pre}} {{_uvr}} towncrier build --yes --version '{{version}}'
+  {{pre}} git add --all
+  {{pre}} git commit -m '{{version}}'
+  {{pre}} git tag --sign -m {{version}} {{version}}
+  {{pre}} git push
 alias release := pkg-release
 
 # * 🧩 Templating
@@ -234,7 +239,10 @@ alias release := pkg-release
 # ♻️  Sync with template
 [group('🧩 Templating')]
 template-sync:
-  {{_uvx}} 'copier@9.7.1' update --vcs-ref=HEAD
+  {{_copier_update}}
+
+_copier_update :=\
+  _uvx + sp + 'copier@9.7.1' + sp + 'update' + sp + '--vcs-ref=HEAD'
 
 
 # * 👥 Contributor environment setup
