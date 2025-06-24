@@ -15,11 +15,23 @@ defaults:
 jobs:
   env:
     uses: "./.github/workflows/env.yml"
-  changerelease:
+  gh:
     needs: "env"
-    continue-on-error: true
+    runs-on: "${{ needs.env.outputs.actions_runner }}"
+    outputs:
+      latest_release: ${{ steps.gh.outputs.latest_release }}
+    steps:
+      - id: "gh"
+        run: |
+          $Env:GITHUB_OUTPUT = "latest_release=(./j.ps1 pkg-release-check)"
+  changerelease:
+    needs:
+      - "env"
+      - "gh"
     permissions:
       contents: "write"
+    if: needs.env.outputs.project_version == needs.gh.outputs.latest_release
+    continue-on-error: true
     runs-on: "${{ needs.env.outputs.actions_runner }}"
     steps:
       - uses: "dropseed/changerelease@3b121c9e98fa055f59a32b023cb4fd2325f4d9dc" # v1.6.0

@@ -1,6 +1,8 @@
 # * Project
-name :=\
+project_name :=\
   env('PROJECT_NAME', empty)
+project_version :=\
+  env('PROJECT_VERSION', empty)
 project_owner_github_username :=\
   env('PROJECT_OWNER_GITHUB_USERNAME', empty)
 github_repo_name :=\
@@ -33,7 +35,7 @@ script_pre :=\
 
 # * Python dev package
 _dev :=\
-  _uvr + sp + quote(name + '-dev')
+  _uvr + sp + quote(project_name + '-dev')
 
 # * ♾️  Self
 
@@ -220,19 +222,28 @@ alias ruff := tool-ruff
 # 🛞  Build wheel, compile binary, and sign...
 [group('📦 Packaging')]
 pkg-build *args:
-  {{pre}} {{_uvr}} {{name}} {{args}}
+  {{pre}} {{_uvr}} {{project_name}} {{args}}
 alias build := pkg-build
 
 # ✨ Release new version.
 [group('📦 Packaging')]
 pkg-release version:
   {{pre}} {{_copier_update}} --defaults --data project_version='{{version}}'
+  {{_just}}
   {{pre}} {{_uvr}} towncrier build --yes --version '{{version}}'
   {{pre}} git add --all
   {{pre}} git commit -m '{{version}}'
   {{pre}} git tag --force --sign -m {{version}} {{version}}
   {{pre}} git push
 alias release := pkg-release
+
+# 🏷️ Check for an existing release.
+[group('📦 Packaging')]
+pkg-get-latest-release:
+  {{pre}} ( \
+    $Latest = gh release list --limit 1 --json tagName | \
+    ConvertFrom-Json | Select-Object -ExpandProperty 'tagName' \
+  ) ? $Latest : '-1'
 
 # * 🧩 Templating
 
