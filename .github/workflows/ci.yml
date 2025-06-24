@@ -1,7 +1,7 @@
 # Run static analysis and tests
 name: "ci"
 concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}"
+  group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: True
 on:
   workflow_dispatch:
@@ -47,14 +47,16 @@ jobs:
       - run: "./j.ps1 ci tool-docs-build"
       - uses: "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa" # v3.0.1
   deploy-docs:
-    if: github.event_name != 'pull_request'
+    needs:
+      - "env"
+      - "build-docs"
     environment:
       name: "github-pages"
       url: "${{ steps.deployment.outputs.page_url }}"
-    needs: ["env", "build-docs"]
     permissions:
-      pages: "write"
       id-token: "write"
+      pages: "write"
+    if: github.event_name != 'pull_request'
     runs-on: "${{ needs.env.outputs.actions_runner }}"
     steps:
       - id: "deployment"

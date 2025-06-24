@@ -1,27 +1,24 @@
 # Publish release
 name: "release"
-concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}"
-  cancel-in-progress: True
 on: ["workflow_dispatch"]
 defaults:
   run:
     shell: "pwsh"
-permissions:
-  id-token: "write"
-  pages: "write"
 jobs:
   env:
     uses: "./.github/workflows/env.yml"
   ci:
     uses: "./.github/workflows/ci.yml"
+    permissions:
+      id-token: "write"
+      pages: "write"
   release:
-    environment:
-      name: "release"
-      url: "https://pypi.org/p/${{ needs.env.outputs.project_name }}"
     needs:
       - "env"
       - "ci"
+    environment:
+      name: "release"
+      url: "https://pypi.org/p/${{ needs.env.outputs.project_name }}"
     permissions:
       attestations: "write"
       contents: "write"
