@@ -66,10 +66,10 @@ function Sync-CiEnv {
     <#.SYNOPSIS
     Sync CI environment path and environment variables.#>
     # ? Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
-    $GitHubPath = $Env:GITHUB_PATH ? $Env:GITHUB_PATH : '.dummy-ci-path-file'
-    if (!(Test-Path $GitHubPath)) { New-Item $GitHubPath }
-    if ( !(Get-Content $GitHubPath | Select-String -Pattern '.venv') ) {
-        Add-Content $GitHubPath ('.venv/bin', '.venv/scripts')
+    $PathFile = $Env:GITHUB_PATH ? $Env:GITHUB_PATH : '.dummy-ci-path-file'
+    if (!(Test-Path $PathFile)) { New-Item $PathFile }
+    if ( !(Get-Content $PathFile | Select-String -Pattern '.venv') ) {
+        Add-Content $PathFile ('.venv/bin', '.venv/scripts')
     }
     # ? Write environment variables to CI environment file
     $EnvFile = $Env:GITHUB_ENV ? $Env:GITHUB_ENV : '.dummy-ci-env-file'

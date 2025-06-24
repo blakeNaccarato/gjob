@@ -15,32 +15,30 @@ defaults:
 jobs:
   env:
     uses: "./.github/workflows/env.yml"
-  gh:
+  now:
     needs: "env"
     runs-on: "${{ needs.env.outputs.actions_runner }}"
     outputs:
-      latest_release: ${{ steps.gh.outputs.latest_release }}
+      latest_release: "${{ steps.now.outputs.latest_release }}"
     steps:
-      - id: "gh"
-        run: |
-          $Env:GITHUB_OUTPUT = "latest_release=(./j.ps1 pkg-release-check)"
-  foo:
-    needs:
-      - "env"
-      - "gh"
-    permissions:
-      contents: "write"
-    if: needs.env.outputs.project_version == needs.gh.outputs.latest_release
-    runs-on: "${{ needs.env.outputs.actions_runner }}"
-    steps:
-      - run: "${{ needs.env.outputs.project_version }}, ${{ needs.gh.outputs.latest_release }}"
+      - uses: "actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332" # v4.1.7
+        with:
+          submodules: True
+      - uses: "astral-sh/setup-uv@9f1f1fece28798fe5e7ece00f4243abe886974b2" # v3.0.0
+        with:
+          version: "${{ needs.env.outputs.uv_version }}"
+          enable-cache: true
+      - id: "now"
+        env:
+          GH_TOKEN: "${{ github.token }}"
+        run: "./j.ps1 ci-out-latest-release"
   changerelease:
     needs:
       - "env"
-      - "gh"
+      - "now"
     permissions:
       contents: "write"
-    if: needs.env.outputs.project_version == needs.gh.outputs.latest_release
+    if: needs.env.outputs.project_version == needs.now.outputs.latest_release
     continue-on-error: true
     runs-on: "${{ needs.env.outputs.actions_runner }}"
     steps:

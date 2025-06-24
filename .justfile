@@ -9,6 +9,8 @@ github_repo_name :=\
   env('GITHUB_REPO_NAME', empty)
 copier_version :=\
   env('COPIER_VERSION', empty)
+output_file :=\
+  env('OUTPUT_FILE', empty)
 
 # * Settings
 set dotenv-load
@@ -229,21 +231,12 @@ alias build := pkg-build
 [group('📦 Packaging')]
 pkg-release version:
   {{pre}} {{_copier_update}} --defaults --data project_version='{{version}}'
-  {{_just}}
   {{pre}} {{_uvr}} towncrier build --yes --version '{{version}}'
   {{pre}} git add --all
   {{pre}} git commit -m '{{version}}'
   {{pre}} git tag --force --sign -m {{version}} {{version}}
   {{pre}} git push
 alias release := pkg-release
-
-# 🏷️ Check for an existing release.
-[group('📦 Packaging')]
-pkg-get-latest-release:
-  {{pre}} ( \
-    $Latest = gh release list --limit 1 --json tagName | \
-    ConvertFrom-Json | Select-Object -ExpandProperty 'tagName' \
-  ) ? $Latest : '-1'
 
 # * 🧩 Templating
 
@@ -308,6 +301,17 @@ con-update-changelog-latest-commit:
       + '(https://github.com/{{ project_owner_github_username }}/{{ github_repo_name }}' \
         + "/commit/$(git rev-parse HEAD)))`n" \
     )
+
+# * 📤 CI Outputs
+
+# 🏷️  Set CI output to latest release.
+[group('📤 CI Outputs')]
+ci-out-latest-release:
+  {{pre}} Set-Content {{ output_file }} "latest_release=$( \
+    ($Latest = gh release list --limit 1 --json tagName | \
+      ConvertFrom-Json | Select-Object -ExpandProperty 'tagName' \
+    ) ? $Latest : '-1' \
+  )"
 
 # * 💻 Machine setup
 

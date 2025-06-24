@@ -20,7 +20,7 @@ Try to fix release workflow.
 
 ## [0.0.1](https://github.com/blakeNaccarato/gjob/tree/0.0.1)
 
-Fix release workflow.
+Try to fix release workflow.
 
 ## [0.0.0](https://github.com/blakeNaccarato/gjob/tree/0.0.0)
 
