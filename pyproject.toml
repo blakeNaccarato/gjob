@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "gjob"
-version = "0.0.1"
+version = "0.0.2"
 authors = [{ name = "Blake Naccarato", email = "blake.naccarato@gmail.com" }]
 description = "Process Google Careers job alert emails"
 readme = "README.md"
