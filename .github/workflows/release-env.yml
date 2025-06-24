@@ -1,0 +1,13 @@
+# Release environment variables
+name: "release-env"
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      actions_runner: { value: "ubuntu-24.04" }
+      uv_version: { value: "0.7.2" }
+jobs:
+  _:
+    runs-on: "ubuntu-24.04"
+    steps:
+      - run: "echo done"

@@ -19,8 +19,8 @@ jobs:
       release: true
   release:
     needs:
-      - "env"
       - "ci"
+      - "release-env"
     permissions:
       contents: "write"
       discussions: "write"
