@@ -15,8 +15,6 @@ jobs:
     uses: "./.github/workflows/env.yml"
   ci:
     uses: "./.github/workflows/ci.yml"
-    with:
-      release: true
   release:
     needs:
       - "env"
