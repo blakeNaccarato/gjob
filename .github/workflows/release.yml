@@ -1,5 +1,8 @@
 # Publish release
 name: "release"
+concurrency:
+  group: "release-${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: True
 on: ["workflow_dispatch"]
 defaults:
   run:
