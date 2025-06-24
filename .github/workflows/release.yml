@@ -12,15 +12,15 @@ permissions:
   id-token: "write"
 jobs:
   env:
-    uses: "./.github/workflows/env.yml"
+    uses: "./.github/workflows/release-env.yml"
   ci:
     uses: "./.github/workflows/ci.yml"
     with:
       release: true
   release:
     needs:
+      - "env"
       - "ci"
-      - "release-env"
     permissions:
       contents: "write"
       discussions: "write"

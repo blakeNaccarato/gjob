@@ -230,7 +230,7 @@ pkg-release version:
   {{pre}} {{_uvr}} towncrier build --yes --version '{{version}}'
   {{pre}} git add --all
   {{pre}} git commit -m '{{version}}'
-  {{pre}} git tag --sign -m {{version}} {{version}}
+  {{pre}} git tag --force --sign -m {{version}} {{version}}
   {{pre}} git push
 alias release := pkg-release
 
