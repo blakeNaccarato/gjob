@@ -4,8 +4,7 @@ _src_path: gh:softboiler/copier-pipeline
 actions_runner: ubuntu-24.04
 github_repo_name: gjob
 package_name: gjob
-project_description: Process exported emails like those from Google Careers aka "Job
-    Alerts from Google"
+project_description: Process Google Careers job alert emails
 project_email: blake.naccarato@gmail.com
 project_name: gjob
 project_owner_github_username: blakeNaccarato
