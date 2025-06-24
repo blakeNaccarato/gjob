@@ -22,7 +22,9 @@ jobs:
       contents: "write"
     runs-on: "${{ needs.env.outputs.actions_runner }}"
     steps:
-      - uses: "dropseed/changerelease@3b121c9e98fa055f59a32b023cb4fd2325f4d9dc" # v1.6.0
-        with:
-          github_token: "${{ github.token }}"
-          tag_prefix: ""
+      - run: "echo done"
+    # steps:
+    #   - uses: "dropseed/changerelease@3b121c9e98fa055f59a32b023cb4fd2325f4d9dc" # v1.6.0
+    #     with:
+    #       github_token: "${{ github.token }}"
+    #       tag_prefix: ""
