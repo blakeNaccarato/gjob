@@ -1,7 +1,7 @@
 # Sync GitHub release notes with the changelog
 name: "changerelease"
 concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
+  group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}"
   cancel-in-progress: True
 on:
   workflow_dispatch:
@@ -22,9 +22,7 @@ jobs:
       contents: "write"
     runs-on: "${{ needs.env.outputs.actions_runner }}"
     steps:
-      - run: "echo done"
-    # steps:
-    #   - uses: "dropseed/changerelease@3b121c9e98fa055f59a32b023cb4fd2325f4d9dc" # v1.6.0
-    #     with:
-    #       github_token: "${{ github.token }}"
-    #       tag_prefix: ""
+      - uses: "dropseed/changerelease@3b121c9e98fa055f59a32b023cb4fd2325f4d9dc" # v1.6.0
+        with:
+          github_token: "${{ github.token }}"
+          tag_prefix: ""
