@@ -24,6 +24,16 @@ jobs:
       - id: "gh"
         run: |
           $Env:GITHUB_OUTPUT = "latest_release=(./j.ps1 pkg-release-check)"
+  foo:
+    needs:
+      - "env"
+      - "gh"
+    permissions:
+      contents: "write"
+    if: needs.env.outputs.project_version == needs.gh.outputs.latest_release
+    runs-on: "${{ needs.env.outputs.actions_runner }}"
+    steps:
+      - run: "${{ needs.env.outputs.project_version }}, ${{ needs.gh.outputs.latest_release }}"
   changerelease:
     needs:
       - "env"
