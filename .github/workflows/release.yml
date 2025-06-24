@@ -1,8 +1,5 @@
 # Publish release
 name: "release"
-concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
-  cancel-in-progress: True
 on: ["workflow_dispatch"]
 defaults:
   run:
@@ -12,7 +9,7 @@ permissions:
   id-token: "write"
 jobs:
   env:
-    uses: "./.github/workflows/release-env.yml"
+    uses: "./.github/workflows/env.yml"
   ci:
     uses: "./.github/workflows/ci.yml"
     with:
