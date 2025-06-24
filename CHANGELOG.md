@@ -16,11 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [0.0.3](https://github.com/blakeNaccarato/gjob/tree/0.0.3)
 
-No significant changes.
+Finally fix release workflow.
 
 ## [0.0.2](https://github.com/blakeNaccarato/gjob/tree/0.0.2)
 
-Try to fix release workflow.
+Try again to fix release workflow.
 
 ## [0.0.1](https://github.com/blakeNaccarato/gjob/tree/0.0.1)
 
