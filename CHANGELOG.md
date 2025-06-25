@@ -16,9 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [2025.0.0](https://github.com/blakeNaccarato/gjob/tree/2025.0.0)
 
-### Changes
-
-- Switch to CalVer ([6144cfc](https://github.com/blakeNaccarato/gjob/commit/6144cfc7a2cd990d49070cf44568011ccb290083)) ([#2025-06-24T23-52-49.6030064Z](https://github.com/blakeNaccarato/gjob/issues/2025-06-24T23-52-49.6030064Z))
+Switch to CalVer ([6144cfc](https://github.com/blakeNaccarato/gjob/commit/6144cfc7a2cd990d49070cf44568011ccb290083))
 
 ## [0.0.3](https://github.com/blakeNaccarato/gjob/tree/0.0.3)
 
