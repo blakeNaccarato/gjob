@@ -8,16 +8,23 @@ function Sync-Uv {
     <#.SYNOPSIS
     Sync uv version.#>
     if (Get-Command './uv' -ErrorAction 'Ignore') {
-        (./uv self version) -Match "uv ([\d.]+)" | Out-Null
         $OrigForceColor = $Env:FORCE_COLOR
         $Env:FORCE_COLOR = $null
-        (./uv self version) -Match 'uv (\d)' | Out-Null
+        (./uv self version) -Match 'uv ([\d.]+)' | Out-Null
         $Env:FORCE_COLOR = $OrigForceColor
         if ($Matches[1] -eq $Env:UV_VERSION) { return }
+        $Matches = $null
     }
-    elseif (Get-Command 'uvx' -ErrorAction 'Ignore') { uvx --from "rust-just@$Env:JUST_VERSION" just inst uv }
-    elseif ($IsWindows) { powershell -ExecutionPolicy 'ByPass' -Command "Invoke-RestMethod https://astral.sh/uv/$Env:UV_VERSION/install.ps1 | Invoke-Expression" }
-    else { curl -LsSf "https://astral.sh/uv/$Env:UV_VERSION/install.sh" | sh }
+    if (Get-Command 'uvx' -ErrorAction 'Ignore') {
+        uvx --from "rust-just@$Env:JUST_VERSION" just inst uv
+        return
+    }
+    if ($IsWindows) {
+        $InstallUv = "Invoke-RestMethod https://astral.sh/uv/$Env:UV_VERSION/install.ps1 | Invoke-Expression"
+        powershell -ExecutionPolicy 'ByPass' -Command $InstallUv
+        return
+    }
+    curl -LsSf "https://astral.sh/uv/$Env:UV_VERSION/install.sh" | sh
 }
 
 function Sync-DevEnv {

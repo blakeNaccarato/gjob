@@ -278,6 +278,7 @@
     "JUST_LIST_SUBMODULES": "true",
     "JUST_UNSORTED": "true",
     "JUST_VERSION": "1.39.0",
+    "PROJECT_DESCRIPTION": "Process Google Careers job alert emails",
     "PROJECT_NAME": "gjob",
     "PROJECT_OWNER_GITHUB_USERNAME": "blakeNaccarato",
     "PROJECT_VERSION": "2025.0.0",
@@ -288,6 +289,7 @@
     "PYTHONUTF8": "1",
     "PYTHONWARNDEFAULTENCODING": "1",
     "PYTHONWARNINGS": "ignore",
+    "TEMPLATE_REF": "2024.2.0-49-g9c590e6",
     "UV_INSTALL_DIR": ".",
     "UV_NO_MODIFY_PATH": "1",
     "UV_VERSION": "0.7.2"
@@ -305,6 +307,7 @@
     "JUST_LIST_SUBMODULES": "true",
     "JUST_UNSORTED": "true",
     "JUST_VERSION": "1.39.0",
+    "PROJECT_DESCRIPTION": "Process Google Careers job alert emails",
     "PROJECT_NAME": "gjob",
     "PROJECT_OWNER_GITHUB_USERNAME": "blakeNaccarato",
     "PROJECT_VERSION": "2025.0.0",
@@ -315,6 +318,7 @@
     "PYTHONUTF8": "1",
     "PYTHONWARNDEFAULTENCODING": "1",
     "PYTHONWARNINGS": "ignore",
+    "TEMPLATE_REF": "2024.2.0-49-g9c590e6",
     "UV_INSTALL_DIR": ".",
     "UV_NO_MODIFY_PATH": "1",
     "UV_VERSION": "0.7.2"
@@ -332,6 +336,7 @@
     "JUST_LIST_SUBMODULES": "true",
     "JUST_UNSORTED": "true",
     "JUST_VERSION": "1.39.0",
+    "PROJECT_DESCRIPTION": "Process Google Careers job alert emails",
     "PROJECT_NAME": "gjob",
     "PROJECT_OWNER_GITHUB_USERNAME": "blakeNaccarato",
     "PROJECT_VERSION": "2025.0.0",
@@ -342,6 +347,7 @@
     "PYTHONUTF8": "1",
     "PYTHONWARNDEFAULTENCODING": "1",
     "PYTHONWARNINGS": "ignore",
+    "TEMPLATE_REF": "2024.2.0-49-g9c590e6",
     "UV_INSTALL_DIR": ".",
     "UV_NO_MODIFY_PATH": "1",
     "UV_VERSION": "0.7.2"
