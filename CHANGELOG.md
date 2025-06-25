@@ -18,16 +18,16 @@ Switch to CalVer ([6144cfc](https://github.com/blakeNaccarato/gjob/commit/6144cf
 
 ## [0.0.3](https://github.com/blakeNaccarato/gjob/tree/0.0.3)
 
-Finally fix release workflow.
+Finally fix release workflow
 
 ## [0.0.2](https://github.com/blakeNaccarato/gjob/tree/0.0.2)
 
-Try again to fix release workflow.
+Try again to fix release workflow
 
 ## [0.0.1](https://github.com/blakeNaccarato/gjob/tree/0.0.1)
 
-Try to fix release workflow.
+Try to fix release workflow
 
 ## [0.0.0](https://github.com/blakeNaccarato/gjob/tree/0.0.0)
 
-Initial release.
+Initial release
