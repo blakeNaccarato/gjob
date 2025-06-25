@@ -295,17 +295,17 @@ con-update-changelog change_type:
 [group('👥 Contributor environment setup')]
 con-update-changelog-latest-commit:
   {{pre}} {{_uvr}} towncrier create \
-    "$((Get-Date).ToUniversalTime().ToString('o').Replace(':','-')).change.md" \
+    "+$((Get-Date).ToUniversalTime().ToString('o').Replace(':','-')).change.md" \
     --content ( \
       "$(git log -1 --format='%s') ([$(git rev-parse --short HEAD)]" \
       + '(https://github.com/{{ project_owner_github_username }}/{{ github_repo_name }}' \
         + "/commit/$(git rev-parse HEAD)))`n" \
     )
 
-# * 📤 CI Outputs
+# * 📤 CI Output
 
 # 🏷️  Set CI output to latest release.
-[group('📤 CI Outputs')]
+[group('📤 CI Output')]
 ci-out-latest-release:
   {{pre}} Set-Content {{ output_file }} "latest_release=$( \
     ($Latest = gh release list --limit 1 --json tagName | \
