@@ -1,10 +1,16 @@
 #* Project
 copier_version :=\
   env('COPIER_VERSION', empty)
+dev_verbose :=\
+  if env('JUST_VERBOSE', empty)=='1' { true } else { false }
+dev_output_file :=\
+  env('DEV_OUTPUT_FILE', empty)
+dev_pyrightconfig_file :=\
+  env('DEV_PYRIGHTCONFIG_FILE', empty)
 github_repo_name :=\
   env('GITHUB_REPO_NAME', empty)
-output_file :=\
-  env('OUTPUT_FILE', empty)
+pre_commit_running :=\
+  if env('PRE_COMMIT', empty)=='1' { true } else { false }
 project_name :=\
   env('PROJECT_NAME', empty)
 project_owner_github_username :=\
@@ -13,6 +19,8 @@ project_version :=\
   env('PROJECT_VERSION', empty)
 template_ref :=\
   env('TEMPLATE_REF', empty)
+vscode_folder_open_task_running :=\
+  if env('VSCODE_FOLDER_OPEN_TASK', empty)=='1' { true } else { false }
 
 #* Settings
 set dotenv-load
@@ -36,12 +44,15 @@ pre :=\
   pwsh_pre + ';'
 script_pre :=\
   pwsh_pre
+_just :=\
+  './j.ps1'
+
 
 #* Python dev package
 _dev :=\
   _uvr + sp + quote(project_name + '-dev')
 
-#* ♾️  Self
+#* ♾️ Self
 
 # 📃 [DEFAULT] List recipes
 [group('♾️  Self')]
@@ -57,17 +68,21 @@ alias j := just
 
 #* ⛰️ Environments
 
-# 🏃 Run shell commands with UV synced...
+# 🏃 Run shell commands with uv synced...
 [group('⛰️ Environments')]
 run *args: uv-sync
   @{{ if args==empty { quote(YELLOW+'No command given'+NORMAL) } else {empty} }}
-  {{ if args!=empty { pre + sp + args } else {empty} }}
+  -{{ if args!=empty { pre + sp + args } else {empty} }}
 alias r := run
 
 # 👥 Run recipes as a contributor...
 [group('⛰️ Environments')]
-con *args: con-pre-commit-hooks uv-sync
-  {{pre}} Sync-ContribEnv
+con *args: uv-sync
+  {{pre}} Sync-ContribEnv | Out-Null
+  {{ if pre_commit_running==true { pre + _just + sp + 'con-git-submodules' } else {empty} }}
+  {{ if vscode_folder_open_task_running==true { \
+    pre + _just + sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
+  } else {empty} }}
   @{{ if args==empty {_no_recipe_given} else {empty} }}
   {{ if args!=empty { pre + _just + sp + args } else {empty} }}
 alias c := con
@@ -75,11 +90,11 @@ alias c := con
 # 🤖 Run recipes in CI...
 [group('⛰️ Environments')]
 ci *args: uv-sync
-  {{pre}} Sync-CiEnv
-  {{pre}} {{_dev}} elevate-pyright-warnings
+  {{pre}} Sync-CiEnv | Out-Null
+  {{pre}} {{_dev}} elevate-pyright-warnings {{dev_pyrightconfig_file}}
   {{ if args!=empty { pre + _just + sp + args } else {empty} }}
 
-# 📦 Run recipes in a devcontainer
+# 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]
 @devcontainer *args:
   {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
@@ -140,7 +155,6 @@ alias sync := uv-sync
 [group('🐍 Python')]
 py *args:
   {{pre}} {{_uvr}} 'python' {{args}}
-alias py- := py
 
 # 📦 uv run --module ...
 [group('🐍 Python')]
@@ -183,6 +197,7 @@ alias pytest := tool-pytest
 tool-docs-preview:
   {{pre}} {{_uvr}} sphinx-autobuild --show-traceback docs _site \
     {{ prepend( '--ignore', "'**/temp' '**/data' '**/apidocs' '**/*schema.json'" ) }}
+alias docs := tool-docs-preview
 
 # 📖 build docs
 [group('⚙️  Tools')]
@@ -194,14 +209,19 @@ tool-docs-build:
 tool-pre-commit *args: con
   {{pre}} {{_uvr}} pre-commit run --verbose {{args}}
 alias pre-commit := tool-pre-commit
-alias pc := tool-pre-commit
 
 # 🔵 pre-commit run --all-files ...
 [group('⚙️  Tools')]
 tool-pre-commit-all *args:
   {{pre}} {{_just}} pre-commit --all-files {{args}}
 alias pre-commit-all := tool-pre-commit-all
-alias pca := tool-pre-commit-all
+
+# ✔️  Check that the working tree is clean
+[group('⚙️  Tools')]
+tool-check-clean:
+  {{pre}} if (git status --porcelain) { \
+    throw 'Files changed when syncing contributor environment. Please commit and push changes with `./j.ps1 con`.' \
+  }
 
 # ✔️  fawltydeps ...
 [group('⚙️  Tools')]
@@ -229,14 +249,21 @@ pkg-build *args:
   {{pre}} {{_uvr}} {{project_name}} {{args}}
 alias build := pkg-build
 
-# ✨ Release new version
+# 📜 Build changelog for new version
 [group('📦 Packaging')]
-pkg-release version:
-  {{pre}} {{_copier_update}} update --vcs-ref='HEAD' --defaults --data 'project_version={{version}}'
+pkg-build-changelog version:
+  {{pre}} {{_templ-sync}} --data 'project_version={{version}}'
   {{pre}} {{_uvr}} towncrier build --yes --version '{{version}}'
+  {{pre}} {{_post_template_task}}
+  -{{pre}} try { git stage 'changelog/*.md' } catch {}
+  @{{quote(YELLOW+'Changelog draft built. Please finalize it, then run `./j.ps1 pkg-release`.'+NORMAL)}}
+
+# ✨ Release the current version
+[group('📦 Packaging')]
+pkg-release:
   {{pre}} git add --all
-  {{pre}} git commit -m '{{version}}'
-  {{pre}} git tag --force --sign -m {{version}} {{version}}
+  {{pre}} git commit -m '{{project_version}}'
+  {{pre}} git tag --force --sign -m {{project_version}} {{project_version}}
   {{pre}} git push
 alias release := pkg-release
 
@@ -267,8 +294,7 @@ hooks :=\
 # 👥 Normalize line endings
 [group('👥 Contributor environment setup')]
 con-norm-line-endings:
-  {{pre}} try { {{_uvr}} pre-commit run mixed-line-ending --all-files | Out-Null } \
-  catch [System.Exception] {}
+  -{{pre}} try { {{_uvr}} pre-commit run mixed-line-ending --all-files | Out-Null } catch {}
 
 # 👥 Run dev task...
 [group('👥 Contributor environment setup')]
@@ -277,7 +303,7 @@ con-dev *args:
 alias dev := con-dev
 alias d := con-dev
 
-# 👥 Update changelog
+# 👥 Update changelog...
 [group('👥 Contributor environment setup')]
 con-update-changelog change_type:
  {{pre}} {{_dev}} add-change {{change_type}}
@@ -301,49 +327,51 @@ con-update-changelog-latest-commit:
 # 🏷️  Set CI output to latest release
 [group('📤 CI Output')]
 ci-out-latest-release:
-  {{pre}} Set-Content {{output_file}} "latest_release=$( \
+  {{pre}} Set-Content {{dev_output_file}} "latest_release=$( \
     ($Latest = gh release list --limit 1 --json tagName | \
       ConvertFrom-Json | Select-Object -ExpandProperty 'tagName' \
     ) ? $Latest : '-1' \
   )"
 
-# * 🧩 Templating
+#* 🧩 Templating
 
 # ⬆️  Update from template
 [group('🧩 Templating')]
 templ-update:
   {{pre}} {{_update_template}} --defaults
-  {{pre}} {{_handle_stale_git_status}}
+  {{pre}} {{_post_template_task}}
 
 # ⬆️  Update from template (prompt)
 [group('🧩 Templating')]
 templ-update-prompt:
   {{pre}} {{_update_template}}
-  {{pre}} {{_handle_stale_git_status}}
+  {{pre}} {{_post_template_task}}
 
 # 🔃 Sync with current template
 [group('🧩 Templating')]
 templ-sync:
-  {{pre}} {{_sync_template}} --defaults
-  {{pre}} {{_handle_stale_git_status}}
+  {{pre}} {{_templ-sync}}
+  {{pre}} {{_post_template_task}}
+_templ-sync :=\
+  _sync_template + sp + '--defaults'
 
 # 🔃 Sync with current template (prompt)
 [group('🧩 Templating')]
 templ-sync-prompt:
   {{pre}} {{_sync_template}}
-  {{pre}} {{_handle_stale_git_status}}
+  {{pre}} {{_post_template_task}}
 
 # ➡️  Recopy current template
 [group('🧩 Templating')]
 templ-recopy:
   {{pre}} {{_recopy_template}} --defaults
-  {{pre}} {{_handle_stale_git_status}}
+  {{pre}} {{_post_template_task}}
 
 # ➡️  Recopy current template (prompt)
 [group('🧩 Templating')]
 templ-recopy-prompt:
   {{pre}} {{_recopy_template}}
-  {{pre}} {{_handle_stale_git_status}}
+  {{pre}} {{_post_template_task}}
 
 _update_template :=\
   _copier_update + sp + _latest_template
@@ -351,8 +379,8 @@ _sync_template :=\
   _copier_update + sp + _current_template
 _recopy_template :=\
   _copier_recopy + sp + _current_template
-_handle_stale_git_status :=\
-  'git add --all; git restore --staged .'
+_post_template_task :=\
+  'git add --all; git reset;' + sp + _just + sp + 'con'
 _latest_template :=\
   quote('--vcs-ref=HEAD')
 _current_template :=\
@@ -373,8 +401,7 @@ _copier :=\
   {{script_pre}}
   {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
   git init
-  try { git rev-parse HEAD }
-  catch [System.Exception] {
+  try { git rev-parse HEAD } catch {
     gh repo create --public --source '.'
     (Get-Content -Raw '.copier-answers.yml') -Match '(?m)^project_description:\s(.+\n(?:\s{4}.+)*)'
     if ($Matches) {
@@ -388,7 +415,7 @@ _copier :=\
   {{_just}} con
   git add --all
   try { git commit --no-verify -m 'Prepare template using softboiler/copier-pipeline' }
-  catch [System.Exception] {}
+  catch {}
   git push
 
 #* 💻 Machine setup
