@@ -208,7 +208,7 @@ _inst_powershell_yaml :=\
         + sp + '-InstallationPolicy' + sp + quote('Trusted') + ';' \
       + sp + 'Install-Module' \
         + sp + '-Name' + sp + quote('powershell-yaml') \
-        + sp + '-RequiredVersion' + sp + quote('0.4.12') \
+        + sp + '-RequiredVersion' + sp + quote(powershell_yaml_version) \
     + sp + '}' \
     + if ci==true { 'finally {} }' } \
     else { \
@@ -217,6 +217,8 @@ _inst_powershell_yaml :=\
       + sp + '-InstallationPolicy $InstallationPolicy' \
       + sp + '} }' \
     }
+powershell_yaml_version :=\
+  env('POWERSHELL_YAML_VERSION', empty)
 # 🌐 Install a project version of uv if you've got global uv
 [group('🌐 Install')]
 uv:
