@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: 2025.1.3-23-g6697578
+_commit: 2025.1.3-28-g446697b
 _src_path: gh:softboiler/copier-pipeline
 actions_runner: ubuntu-24.04
 github_repo_name: gjob
