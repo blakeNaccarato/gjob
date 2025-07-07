@@ -8,7 +8,8 @@ param([Parameter(ValueFromRemainingArguments)][string[]]$RemainingArgs)
 #? Set environment variables and uv
 if ($Env:CI) {
     $Uvx = 'uvx'
-    Install-Module -Confirm:$false 'powershell-yaml'
+    Set-PsRepository 'PSGallery' -InstallationPolicy 'Trusted'
+    Install-Module 'powershell-yaml'
     if (!(Test-Path 'data/local.just')) { New-Item 'data/local.just' | Out-Null }
     Sync-Env (Merge-Envs $global:CiEnvs) | Out-Null
 }
