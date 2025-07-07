@@ -8,9 +8,8 @@ param([Parameter(ValueFromRemainingArguments)][string[]]$RemainingArgs)
 #? Set environment variables and uv
 if ($Env:CI) {
     $Uvx = 'uvx'
-    Sync-Env (Merge-Envs $global:BaseEnvs) | Out-Null
+    Install-Module 'powershell-yaml'
     if (!(Test-Path 'data/local.just')) { New-Item 'data/local.just' | Out-Null }
-    & $Uvx --from "rust-just@$Env:JUST_VERSION" just inst powershell-yaml
     Sync-Env (Merge-Envs $global:CiEnvs) | Out-Null
 }
 else {
