@@ -267,6 +267,7 @@
   //! Please only update by modifying `env.json` then running `./j.ps1 con` to sync
   "terminal.integrated.env.linux": {
     "ACTIONS_RUNNER": "ubuntu-24.04",
+    "COPIER_VERSION": "9.7.1",
     "COVERAGE_CORE": "sysmon",
     "DEV_CI_ENV_FILE": ".dummy-ci-env-file",
     "DEV_CI_OUTPUT_FILE": ".dummy-ci-output-file",
@@ -305,6 +306,7 @@
   //! Please only update by modifying `env.json` then running `./j.ps1 con` to sync
   "terminal.integrated.env.osx": {
     "ACTIONS_RUNNER": "ubuntu-24.04",
+    "COPIER_VERSION": "9.7.1",
     "COVERAGE_CORE": "sysmon",
     "DEV_CI_ENV_FILE": ".dummy-ci-env-file",
     "DEV_CI_OUTPUT_FILE": ".dummy-ci-output-file",
@@ -343,6 +345,7 @@
   //! Please only update by modifying `env.json` then running `./j.ps1 con` to sync
   "terminal.integrated.env.windows": {
     "ACTIONS_RUNNER": "ubuntu-24.04",
+    "COPIER_VERSION": "9.7.1",
     "COVERAGE_CORE": "sysmon",
     "DEV_CI_ENV_FILE": ".dummy-ci-env-file",
     "DEV_CI_OUTPUT_FILE": ".dummy-ci-output-file",
