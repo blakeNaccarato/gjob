@@ -8,7 +8,6 @@ $global:BaseEnvs = ('base')
 $Envs = ('answers', 'base')
 $global:ContribEnvs = $Envs + 'contrib'
 $global:CiEnvs = $Envs + 'ci'
-$global:PcEnvs = $Envs + 'pre-commit'
 
 function Sync-Uv {
     <#.SYNOPSIS
@@ -125,14 +124,4 @@ function Sync-CiEnv {
         $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
     }
     return $CiEnv
-}
-
-function Sync-PcEnv {
-    <#.SYNOPSIS
-    Sync CI environment path and environment variables.#>
-    Sync-ContribEnv | Out-Null
-    $Env:DEV_ENV = 'pre-commit'
-    $PcEnv = Merge-Envs $PcEnvs
-    Sync-Env $PcEnv
-    return $PcEnv
 }

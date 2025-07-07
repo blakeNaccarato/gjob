@@ -114,14 +114,6 @@ ci *args: uv-sync
   {{ if args==empty {empty} else { _just + sp + args } }}
 alias dc := devcontainer
 
-# 🔵 Run recipes in pre-commit...
-[group('⛰️ Environments')]
-pc *args:
-  {{pre}} Sync-PcEnv | Out-Null
-  {{pre}} {{_dev}} elevate-pyright-warnings {{dev_pyrightconfig_file}}
-  try { {{_just}} {{args}} } \
-    finally { Remove-Item {{quote(dev_pyrightconfig_file)}} }
-
 _no_recipe_given :=\
   quote(BLACK+'No recipe given'+NORMAL)
 
