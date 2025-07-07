@@ -198,7 +198,7 @@ _pwsh_name :=\
 # 🌐 Install YAML utilities for cross-platform PowerShell
 [group('🌐 Install')]
 powershell-yaml:
-  {{_just_inst}}pwsh; . {{quote(pwsh_bin)}} -Command '{{_inst_powershell_yaml}}'
+  pwsh -Command '{{_inst_powershell_yaml}}'
 _inst_powershell_yaml :=\
   "if (!(Get-InstalledModule -ErrorAction 'Ignore' 'powershell-yaml')) {" \
     + sp + '$InstallationPolicy = Get-PSRepository' + sp + quote('PSGallery') + sp + '|' \
