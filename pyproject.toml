@@ -26,6 +26,9 @@ Home = "https://github.com/blakeNaccarato/gjob"
 Tracker = "https://github.com/blakeNaccarato/gjob/issues"
 [dependency-groups]
 dev = [
+  #? Notebooks
+  "more-itertools>=10.7.0",
+  "seaborn>=0.13.2",
   #? Dev
   "debugpy>=1.8.2",
   "fawltydeps>=0.18.0",

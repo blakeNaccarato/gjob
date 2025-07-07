@@ -3,8 +3,8 @@ copier_version :=\
   env('COPIER_VERSION', empty)
 dev_verbose :=\
   if env('JUST_VERBOSE', empty)=='1' { true } else { false }
-dev_output_file :=\
-  env('DEV_OUTPUT_FILE', empty)
+dev_ci_output_file :=\
+  env('DEV_CI_OUTPUT_FILE', empty)
 dev_pyrightconfig_file :=\
   env('DEV_PYRIGHTCONFIG_FILE', empty)
 github_repo_name :=\
@@ -17,8 +17,8 @@ project_owner_github_username :=\
   env('PROJECT_OWNER_GITHUB_USERNAME', empty)
 project_version :=\
   env('PROJECT_VERSION', empty)
-template_ref :=\
-  env('TEMPLATE_REF', empty)
+template_commit :=\
+  env('TEMPLATE_COMMIT', empty)
 vscode_folder_open_task_running :=\
   if env('VSCODE_FOLDER_OPEN_TASK', empty)=='1' { true } else { false }
 
@@ -30,6 +30,10 @@ set unstable
 import 'scripts/common.just'
 
 #* Modules
+#? 🏠 `local`
+mod local 'data/local.just'
+#? ✨ `gjob`
+mod gjob 'scripts/gjob.just'
 #? 🌐 Install
 mod inst 'scripts/inst.just'
 
@@ -109,6 +113,14 @@ ci *args: uv-sync
   {{ if args==empty { 'return' } else { '#?'+BLUE+sp+'Run recipe'+NORMAL } }}
   {{ if args==empty {empty} else { _just + sp + args } }}
 alias dc := devcontainer
+
+# 🔵 Run recipes in pre-commit...
+[group('⛰️ Environments')]
+pc *args:
+  {{pre}} Sync-PcEnv | Out-Null
+  {{pre}} {{_dev}} elevate-pyright-warnings {{dev_pyrightconfig_file}}
+  try { {{_just}} {{args}} } \
+    finally { Remove-Item {{quote(dev_pyrightconfig_file)}} }
 
 _no_recipe_given :=\
   quote(BLACK+'No recipe given'+NORMAL)
@@ -327,7 +339,7 @@ con-update-changelog-latest-commit:
 # 🏷️  Set CI output to latest release
 [group('📤 CI Output')]
 ci-out-latest-release:
-  {{pre}} Set-Content {{dev_output_file}} "latest_release=$( \
+  {{pre}} Set-Content {{dev_ci_output_file}} "latest_release=$( \
     ($Latest = gh release list --limit 1 --json tagName | \
       ConvertFrom-Json | Select-Object -ExpandProperty 'tagName' \
     ) ? $Latest : '-1' \
@@ -384,7 +396,7 @@ _post_template_task :=\
 _latest_template :=\
   quote('--vcs-ref=HEAD')
 _current_template :=\
-  quote('--vcs-ref=' + template_ref)
+  quote('--vcs-ref=' + template_commit)
 _copier_recopy :=\
   _copier + sp + 'recopy'
 _copier_update :=\

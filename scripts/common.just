@@ -6,9 +6,9 @@ ci :=\
 
 # Binaries
 _uv :=\
-  if ci==true { './uv' } else { 'uv' }
+  if ci==true { 'uv' } else { './uv' }
 _uvx :=\
-  if ci==true { './uvx' } else { 'uvx' }
+  if ci==true { 'uvx' } else { './uvx' }
 
 #* Reusable shell preamble
 pwsh_pre := '.' + sp + 'scripts/pre.ps1'

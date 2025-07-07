@@ -3,28 +3,17 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $True
 $ErrorView = 'NormalView'
 $OutputEncoding = [console]::InputEncoding = [console]::OutputEncoding = [System.Text.Encoding]::UTF8
-#? Extra variables only set in certain environments
-$ExtraConVars = [ordered]@{
-    DEV_OUTPUT_FILE        = '.dummy-ci-output-file'
-    DEV_PYRIGHTCONFIG_FILE = '.dummy-ci-pyrightconfig.json'
-}
-$ExtraCiVars = [ordered]@{
-    DEV_OUTPUT_FILE        = $Env:GITHUB_OUTPUT
-    DEV_PYRIGHTCONFIG_FILE = 'pyrightconfig.json'
-    JUST_COLOR             = 'always'
-    JUST_NO_DOTENV         = 'true'
-    JUST_TIMESTAMP         = 'true'
-    JUST_VERBOSE           = '1'
-}
+
+$Envs = ('answers', 'base')
+$global:ContribEnvs = $Envs + 'contrib'
+$global:CiEnvs = $Envs + 'ci'
+$global:PcEnvs = $Envs + 'pre-commit'
 
 function Sync-Uv {
     <#.SYNOPSIS
     Sync uv version.#>
     if (Get-Command './uv' -ErrorAction 'Ignore') {
-        $OrigForceColor = $Env:FORCE_COLOR
-        $Env:FORCE_COLOR = $null
-        (./uv self version) -Match 'uv ([\d.]+)' | Out-Null
-        $Env:FORCE_COLOR = $OrigForceColor
+        (./uv --color never self version) -match 'uv ([\d.]+)' | Out-Null
         if ($Matches[1] -eq $Env:UV_VERSION) { return }
         $Matches = $null
     }
@@ -40,26 +29,49 @@ function Sync-Uv {
     curl -LsSf "https://astral.sh/uv/$Env:UV_VERSION/install.sh" | sh
 }
 
-function Sync-Env {
+function Get-Env {
     <#.SYNOPSIS
-    Write environment variables to the development environment used e.g. in `j.ps1`.#>
-    Param([Hashtable]$ExtraVars = [ordered]@{})
-    $Env:DEV_ENV = 'contrib'
-    #? Set and track environment variables
-    $EnvVars = Get-Content 'env.json' | ConvertFrom-Json
-    $ExtraVars.GetEnumerator() | ForEach-Object {
-        $K, $V = $_.Key, $_.Value
-        if ($null -ne $V) { $EnvVars | Add-Member -NotePropertyName $K -NotePropertyValue $V }
-    }
-    $DevEnv = [ordered]@{}
-    $EnvVars.PsObject.Properties | Sort-Object 'Name' | ForEach-Object {
-        $K, $V = $_.Name, $_.Value
-        if ($null -ne $V) {
-            Set-Item "Env:$K" $V
-            $DevEnv[$K] = $V
+    Get environment variables.#>
+    param([Parameter(Mandatory)][string]$Name)
+    $Envs = (Get-Content 'env.json' | ConvertFrom-Json)
+    if (($Path = $Envs.$Name) -is [string]) {
+        if ($Path.EndsWith('.json')) { $RawEnv = Get-Content $Path | ConvertFrom-Json }
+        elseif ($Path.EndsWith('.yaml') -or $Path.EndsWith('.yml')) {
+            $RawEnv = Get-Content $Path | ConvertFrom-Yaml
         }
+        else { throw "Could not parse environment '$Name' at '$Path'" }
+    }
+    else { $RawEnv = $Envs.$Name.PsObject.Properties }
+    $DevEnv = [ordered]@{}
+    $RawEnv.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
+        $Name = (($_.Name -match '^_.+$') ? "template$($_.Name)" : $_.Name).ToUpper()
+        if ( $_.Value -match '^Env:.+$' ) {
+            if ( $EnvValue = Get-Item $_.Value -ErrorAction 'Ignore' ) {
+                $DevEnv[$Name] = $EnvValue
+            }
+        }
+        else { $DevEnv[$Name] = $_.Value }
     }
     return $DevEnv
+}
+
+function Merge-Envs {
+    <#.SYNOPSIS
+    Merge environment variables.#>
+    param([Parameter(Mandatory)][string[]]$Envs)
+    $Merged = [ordered]@{}
+    @( $Envs | ForEach-Object { (Get-Env $_).GetEnumerator() } ) | Sort-Object 'Name' |
+        ForEach-Object { $Merged[$_.Name] = $_.Value }
+    return $Merged
+}
+
+function Sync-Env {
+    <#.SYNOPSIS
+    Sync environment variables.#>
+    param([Parameter(Mandatory)][hashtable]$Env)
+    $Env.GetEnumerator() | ForEach-Object {
+        Set-Item "Env:$($_.Name)" ($_.Value ? $_.Value : $null)
+    }
 }
 
 function Sync-ContribEnv {
@@ -67,10 +79,9 @@ function Sync-ContribEnv {
     Write environment variables to VSCode contributor environment.#>
     $DevEnvSettingsJson = ''
     $DevEnvWorkflowYaml = ''
-    (Sync-Env).GetEnumerator() | ForEach-Object {
-        $K, $V = $_.Key, $_.Value
-        $DevEnvSettingsJson += "`n    `"$K`": `"$V`","
-        $DevEnvWorkflowYaml += "`n      $($K.ToLower()): { value: `"$V`" }"
+    (Merge-Envs $Envs).GetEnumerator() | ForEach-Object {
+        $DevEnvSettingsJson += "`n    `"$($_.Name)`": `"$($_.Value)`","
+        $DevEnvWorkflowYaml += "`n      $($_.Name.ToLower()): { value: `"$($_.Value)`" }"
     }
     $DevEnvSettingsJson = "{$($DevEnvSettingsJson.TrimEnd(','))`n  }"
     $Settings = '.vscode/settings.json'
@@ -78,39 +89,49 @@ function Sync-ContribEnv {
     foreach ($Plat in ('linux', 'osx', 'windows')) {
         $Pat = "(?m)`"terminal\.integrated\.env\.$Plat`"\s*:\s*\{[^}]*\}"
         $Repl = "`"terminal.integrated.env.$Plat`": $DevEnvSettingsJson"
-        $SettingsContent = $SettingsContent -Replace $Pat, $Repl
+        $SettingsContent = $SettingsContent -replace $Pat, $Repl
     }
     Set-Content $Settings $SettingsContent -NoNewline
     $Workflow = '.github/workflows/env.yml'
     $WorkflowPat = '(?m)^\s{4}outputs:(?:\s\{\}|(?:\n^\s{6}.+$)+)'
     $WorkflowRepl = "    outputs:$DevEnvWorkflowYaml"
-    $WorkflowContent = (Get-Content $Workflow -Raw) -Replace $WorkflowPat, $WorkflowRepl
+    $WorkflowContent = (Get-Content $Workflow -Raw) -replace $WorkflowPat, $WorkflowRepl
     Set-Content $Workflow $WorkflowContent -NoNewline
-    return Sync-Env $ExtraConVars
+    $Env:DEV_ENV = 'contrib'
+    $ContribEnv = Merge-Envs ($ContribEnvs)
+    Sync-Env $ContribEnv
+    return $ContribEnv
 }
 
 function Sync-CiEnv {
     <#.SYNOPSIS
     Sync CI environment path and environment variables.#>
     $Env:DEV_ENV = 'ci'
+    $CiEnv = Merge-Envs $CiEnvs
+    Sync-Env $CiEnv
     #? Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
-    $PathFile = $Env:GITHUB_PATH ? $Env:GITHUB_PATH : '.dummy-ci-path-file'
-    if (!(Test-Path $PathFile)) { New-Item $PathFile }
-    if ( !(Get-Content $PathFile | Select-String -Pattern '.venv') ) {
-        $Workdir = $PWD -Replace '\\', '/'
-        Add-Content $PathFile ("$Workdir/.venv/bin", "$Workdir/.venv/scripts")
+    if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }
+    if ( !(Get-Content $Env:DEV_CI_PATH_FILE | Select-String -Pattern '.venv') ) {
+        $Workdir = $PWD -replace '\\', '/'
+        Add-Content $Env:DEV_CI_PATH_FILE ("$Workdir/.venv/bin", "$Workdir/.venv/scripts")
     }
     #? Write environment variables to CI environment file
-    $CiEnv = Sync-Env $ExtraCiVars
     $CiEnvText = ''
-    $CiEnv.GetEnumerator() | ForEach-Object {
-        $K, $V = $_.Key, $_.Value
-        $CiEnvText += "$K=$V`n"
-    }
-    $EnvFile = $Env:GITHUB_ENV ? $Env:GITHUB_ENV : '.dummy-ci-env-file'
-    if (!(Test-Path $EnvFile)) { New-Item $EnvFile }
-    if (!(Get-Content $EnvFile | Select-String -Pattern 'DEV_ENV_SET')) {
-        $CiEnvText | Add-Content $EnvFile
+    $CiEnv['CI_ENV_SET'] = '1'
+    $CiEnv.GetEnumerator() | ForEach-Object { $CiEnvText += "$($_.Name)=$($_.Value)`n" }
+    if (!(Test-Path $Env:DEV_CI_ENV_FILE)) { New-Item $Env:DEV_CI_ENV_FILE | Out-Null }
+    if (!(Get-Content $Env:DEV_CI_ENV_FILE | Select-String -Pattern 'CI_ENV_SET')) {
+        $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
     }
     return $CiEnv
+}
+
+function Sync-PcEnv {
+    <#.SYNOPSIS
+    Sync CI environment path and environment variables.#>
+    Sync-ContribEnv | Out-Null
+    $Env:DEV_ENV = 'pre-commit'
+    $PcEnv = Merge-Envs $PcEnvs
+    Sync-Env $PcEnv
+    return $PcEnv
 }
