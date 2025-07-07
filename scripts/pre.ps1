@@ -4,6 +4,7 @@ $PSNativeCommandUseErrorActionPreference = $True
 $ErrorView = 'NormalView'
 $OutputEncoding = [console]::InputEncoding = [console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+$global:BaseEnvs = ('base')
 $Envs = ('answers', 'base')
 $global:ContribEnvs = $Envs + 'contrib'
 $global:CiEnvs = $Envs + 'ci'
