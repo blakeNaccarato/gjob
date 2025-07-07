@@ -210,12 +210,13 @@ _inst_powershell_yaml :=\
         + sp + '-Name' + sp + quote('powershell-yaml') \
         + sp + '-RequiredVersion' + sp + quote('0.4.12') \
     + sp + '}' \
-    + sp + 'finally {' \
+    + if ci==true { 'finally {} }' } \
+    else { \
+      sp + 'finally {' \
       + sp + 'Set-PSRepository' + sp + quote('PSGallery') \
-        + sp + '-InstallationPolicy $InstallationPolicy' \
-    + sp + '}' \
-  + sp + '}'
-
+      + sp + '-InstallationPolicy $InstallationPolicy' \
+      + sp + '} }' \
+    }
 # 🌐 Install a project version of uv if you've got global uv
 [group('🌐 Install')]
 uv:
