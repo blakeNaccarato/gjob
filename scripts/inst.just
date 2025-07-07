@@ -206,7 +206,9 @@ _inst_powershell_yaml :=\
     + sp + 'try {' \
       + sp + 'Set-PSRepository' + sp + quote('PSGallery') \
         + sp + '-InstallationPolicy' + sp + quote('Trusted') + ';' \
-      + sp + 'Install-Module' + sp + quote('powershell-yaml') \
+      + sp + 'Install-Module' \
+        + sp + '-Name' + sp + quote('powershell-yaml') \
+        + sp + '-RequiredVersion' + sp + quote('0.4.12') \
     + sp + '}' \
     + sp + 'finally {' \
       + sp + 'Set-PSRepository' + sp + quote('PSGallery') \

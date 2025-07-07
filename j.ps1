@@ -8,10 +8,10 @@ param([Parameter(ValueFromRemainingArguments)][string[]]$RemainingArgs)
 #? Set environment variables and uv
 if ($Env:CI) {
     $Uvx = 'uvx'
-    Set-PsRepository 'PSGallery' -InstallationPolicy 'Trusted'
-    Install-Module -Name 'powershell-yaml' -RequiredVersion 0.4.12
+    Sync-Env (Merge-Envs $BaseEnvs) | Out-Null
     if (!(Test-Path 'data/local.just')) { New-Item 'data/local.just' | Out-Null }
-    Sync-Env (Merge-Envs $global:CiEnvs) | Out-Null
+    & $Uvx --from "rust-just@$Env:JUST_VERSION" just inst powershell-yaml
+    Sync-Env (Merge-Envs $CiEnvs) | Out-Null
 }
 else {
     $Uvx = './uvx'
