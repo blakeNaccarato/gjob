@@ -2,7 +2,7 @@
 python_version :=\
   env('PYTHON_VERSION', empty)
 ci :=\
-  if env('CI', empty)=='1' { true } else { false }
+  if env('CI', empty)!=empty { true } else { false }
 
 # Binaries
 _uv :=\

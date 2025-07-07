@@ -9,7 +9,7 @@ param([Parameter(ValueFromRemainingArguments)][string[]]$RemainingArgs)
 if ($Env:CI) {
     $Uvx = 'uvx'
     Set-PsRepository 'PSGallery' -InstallationPolicy 'Trusted'
-    Install-Module 'powershell-yaml'
+    Install-Module -Name 'powershell-yaml' -RequiredVersion 0.4.12
     if (!(Test-Path 'data/local.just')) { New-Item 'data/local.just' | Out-Null }
     Sync-Env (Merge-Envs $global:CiEnvs) | Out-Null
 }
