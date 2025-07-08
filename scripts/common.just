@@ -33,7 +33,7 @@ pre :=\
 script_pre :=\
   '.' + sp + _j
 j :=\
-  _j + sp + vars
+  _j + if override==true { sp + vars } else { empty }
 _j :=\
   './j.ps1'
 

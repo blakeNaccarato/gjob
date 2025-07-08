@@ -41,50 +41,12 @@ evaluate:
 [group('⛰️ Environments')]
 run *args: uv-sync
   @{{ if args==empty { quote(YELLOW+'No command given'+NORMAL) } else {empty} }}
-  -{{ if args!=empty { j + sp + args } else {empty} }}
+  -{{ if args!=empty { j + ';' + sp + args } else {empty} }}
 alias r := run
 
 # 👥 Run recipes as a contributor...
-[group('⛰️ Environments')]
-con *args: uv-sync
-  {{j}} _sync-contrib-env
-  {{ if env("PRE_COMMIT", empty)=='1' { j + sp + 'con-git-submodules' } else {empty} }}
-  {{ if env("VSCODE_FOLDER_OPEN_TASK_RUNNING", empty)=='1' { \
-    j + sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
-  } else {empty} }}
-  @{{ if args==empty {_no_recipe_given} else {empty} }}
-  {{ if args!=empty { j + sp + args } else {empty} }}
-alias c := con
-
-# 🤖 Run recipes in CI...
-[group('⛰️ Environments')]
-ci *args: uv-sync
-  {{j}} _sync-ci-env
-  {{pre}} {{_dev}} elevate-pyright-warnings {{env("DEV_PYRIGHTCONFIG_FILE")}}
-  {{ if args!=empty { j + sp + args } else {empty} }}
-
-# 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]
-@devcontainer *args:
-  {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
-  {{script_pre}}
-  {{'#?'+BLUE+sp+'Devcontainers need submodules explicitly marked as safe directories'+NORMAL}}
-  $Repo = Get-ChildItem '/workspaces'
-  $Packages = Get-ChildItem "$Repo/packages"
-  $SafeDirs = @($Repo) + $Packages
-  foreach ($Dir in $SafeDirs) {
-    if (!($SafeDirs -contains $Dir)) { git config --global --add safe.directory $Dir }
-  }
-  {{ if args==empty { 'return' } else { '#?'+BLUE+sp+'Run recipe'+NORMAL } }}
-  {{ if args==empty {empty} else { j + sp + args } }}
-alias dc := devcontainer
-
-_no_recipe_given :=\
-  quote(BLACK+'No recipe given'+NORMAL)
-
-# Sync contributor environment vars
-[script, group('🛠️ Repository setup')]
-_sync-contrib-env:
+con *args: uv-sync
   {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
   {{script_pre}}
   {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
@@ -111,10 +73,16 @@ _sync-contrib-env:
   $Env:DEV_ENV = 'contrib'
   $ContribEnv = Merge-Envs ({{base_envs}} + $Env:DEV_ENV)
   Sync-Env $ContribEnv
+  {{ if env("PRE_COMMIT", empty)=='1' { j + sp + 'con-git-submodules' } else {empty} }}
+  {{ if env("VSCODE_FOLDER_OPEN_TASK_RUNNING", empty)=='1' { \
+    j + sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
+  } else {empty} }}
+  {{ if args!=empty { j + sp + args } else {empty} }}
+alias c := con
 
-# Sync CI environment vars
-[script, group('🛠️ Repository setup')]
-_sync-ci-env:
+# 🤖 Run recipes in CI...
+[script, group('⛰️ Environments')]
+ci *args: uv-sync
   {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
   {{script_pre}}
   {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
@@ -135,6 +103,24 @@ _sync-ci-env:
   if (!(Get-Content $Env:DEV_CI_ENV_FILE | Select-String -Pattern 'CI_ENV_SET')) {
       $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
   }
+  {{_dev}} elevate-pyright-warnings $Env:DEV_PYRIGHTCONFIG_FILE
+  {{ if args!=empty { j + sp + args } else {empty} }}
+
+# 📦 Run recipes in devcontainer
+[script, group('⛰️ Environments')]
+@devcontainer *args:
+  {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
+  {{script_pre}}
+  {{'#?'+BLUE+sp+'Devcontainers need submodules explicitly marked as safe directories'+NORMAL}}
+  $Repo = Get-ChildItem '/workspaces'
+  $Packages = Get-ChildItem "$Repo/packages"
+  $SafeDirs = @($Repo) + $Packages
+  foreach ($Dir in $SafeDirs) {
+    if (!($SafeDirs -contains $Dir)) { git config --global --add safe.directory $Dir }
+  }
+  {{ if args==empty { 'return' } else { '#?'+BLUE+sp+'Run recipe'+NORMAL } }}
+  {{ if args==empty {empty} else { j + sp + args } }}
+alias dc := devcontainer
 
 base_envs :=\
  "('answers', 'base')"
