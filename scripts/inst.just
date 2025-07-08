@@ -14,7 +14,7 @@ set shell :=\
 set script-interpreter :=\
   ['bash', '--noprofile', '--norc', '--posix']
 
-#* Reusable shell preamble
+#* Shell preamble
 inst_pre :=\
   if os_family()=='windows' { _j + ';' } else { empty } \
   || 'set -o errexit -o nounset -o pipefail -o xtrace;'

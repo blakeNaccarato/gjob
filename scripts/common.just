@@ -1,8 +1,6 @@
 #* Variables
 ci :=\
   env('CI', false)
-preamble :=\
-  true
 python_version :=\
   env('PYTHON_VERSION')
 
@@ -16,12 +14,10 @@ _python_version :=\
 vars :=\
   if override==true { \
     quote('ci=' + ci) \
-    + sp + quote('preamble=' + preamble) \
     + sp + quote('python_version=' + _python_version) \
   } else { empty }
 override :=\
   if ci==env('CI', false) { empty } else { true } \
-  || if preamble==true { empty } else { true } \
   || if python_version==env('PYTHON_VERSION') { empty } else { true } \
   || false
 
@@ -35,13 +31,11 @@ _uvx :=\
 pre :=\
   script_pre + ';'
 script_pre :=\
-  '.' + sp + _j + _preamble
+  '.' + sp + _j
 j :=\
-  _j + sp + vars + _preamble
+  _j + sp + vars
 _j :=\
   './j.ps1'
-_preamble :=\
-  if preamble==true { sp + 'proj::preamble' } else { empty }
 
 #* File extensions
 sh_ext :=\
