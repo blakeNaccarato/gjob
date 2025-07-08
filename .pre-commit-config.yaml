@@ -8,6 +8,7 @@ ci:
     - "sync"
     - "fawltydeps"
     - "fawltydeps-dev"
+    - "fawltydeps-pipeline"
     - "pytest-fast-only"
   autoupdate_schedule: "quarterly"
 default_install_hook_types:
@@ -48,6 +49,17 @@ repos:
         files: |
           (?x)^(
             packages/_dev/.*
+            |docs/.*
+            |tests/.*
+          )$
+      - id: "fawltydeps-pipeline"
+        name: "fawltydeps-pipeline"
+        pass_filenames: false
+        language: "system"
+        entry: "pwsh -NonInteractive -NoProfile -Command './j.ps1 fawltydeps --config-file packages/_pipeline/pyproject.toml'"
+        files: |
+          (?x)^(
+            packages/_pipeline/.*
             |docs/.*
             |tests/.*
           )$

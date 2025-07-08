@@ -26,9 +26,9 @@ Home = "https://github.com/blakeNaccarato/gjob"
 Tracker = "https://github.com/blakeNaccarato/gjob/issues"
 [dependency-groups]
 dev = [
-  #? Notebooks
-  "more-itertools>=10.7.0",
-  "seaborn>=0.13.2",
+  #? Packages
+  "cachier",
+  "context-models",
   #? Dev
   "debugpy>=1.8.2",
   "fawltydeps>=0.18.0",
@@ -80,10 +80,12 @@ constraint-dependencies = [
 [tool.uv.pip]
 python-version = "3.11"
 [tool.uv.sources]
+cachier = { path = "packages/cachier", editable = true }
+context-models = { path = "packages/context-models", editable = true }
 gjob-dev = { workspace = true }
 gjob-pipeline = { workspace = true }
 [tool.uv.workspace]
-members = ["packages/*"]
+members = ["packages/_dev", "packages/_pipeline"]
 
 [tool.coverage.report]
 exclude_also = ['if __name__ == "__main__":']
@@ -151,7 +153,7 @@ include = [
   "scripts",
   "tests",
 ]
-ignore = ["**/.*", "*:/**/.*", "*:/**/appdata", "typings"]
+ignore = ["**/.*", "*:/**/.*", "*:/**/appdata", "typings", "packages/context-models"]
 # Default "true" in strict
 analyzeUnannotatedFunctions = true
 strictParameterNoneValue = true
@@ -249,7 +251,7 @@ reportUnusedCallResult = "none"
 
 [tool.ruff]
 cache-dir = ".cache/.ruff_cache"
-extend-exclude = ["typings"]
+extend-exclude = ["packages/cachier", "packages/context-models", "typings"]
 fix = true
 output-format = "grouped"
 preview = true

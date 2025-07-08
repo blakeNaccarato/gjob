@@ -51,10 +51,11 @@ script_pre :=\
 _just :=\
   './j.ps1'
 
-
-#* Python dev package
+#* Python packages
 _dev :=\
   _uvr + sp + quote(project_name + '-dev')
+_pipeline :=\
+  _uvr + sp + quote(project_name + '-pipeline')
 
 #* ♾️ Self
 
@@ -306,6 +307,12 @@ con-dev *args:
   {{pre}} {{_dev}} {{args}}
 alias dev := con-dev
 alias d := con-dev
+
+# 👥 Run pipeline stage...
+[group('👥 Contributor environment setup')]
+con-pipeline *args:
+  {{pre}} {{_pipeline}} {{args}}
+alias pipeline := con-pipeline
 
 # 👥 Update changelog...
 [group('👥 Contributor environment setup')]

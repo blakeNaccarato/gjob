@@ -1,0 +1,23 @@
+stages:
+  convert:
+    cmd: pwsh -Command "./Invoke-Uv gjob-pipeline stage convert"
+    deps:
+      - packages/_pipeline/src/gjob_pipeline/stages/convert
+      - docs/notebooks/convert.ipynb
+      - data/mboxes
+    outs:
+      - data/reqs:
+          cache: false
+          persist: true
+          push: false
+    params:
+      - stage
+  skip_cloud:
+    cmd: pwsh -Command "./Invoke-Uv gjob-pipeline stage skip-cloud"
+    outs:
+      - data/mboxes:
+          cache: false
+          persist: true
+          push: false
+    params:
+      - stage
