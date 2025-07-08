@@ -210,7 +210,7 @@ _inst_powershell_yaml :=\
         + sp + '-Name' + sp + quote('powershell-yaml') \
         + sp + '-RequiredVersion' + sp + quote(powershell_yaml_version) \
     + sp + '}' \
-    + if _ci==true { 'finally {} }' } \
+    + if ci!=empty { 'finally {} }' } \
     else { \
       sp + 'finally {' \
       + sp + 'Set-PSRepository' + sp + quote('PSGallery') \

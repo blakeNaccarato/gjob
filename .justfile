@@ -129,7 +129,7 @@ base_envs :=\
 
 #? uv invocations
 _uv_options :=\
-  '--all-packages' + sp + '--python' + sp + quote(_python_version)
+  '--all-packages' + sp + '--python' + sp + quote(python_version)
 _uvr :=\
   _uv + sp + 'run' + sp + _uv_options
 _uvs :=\

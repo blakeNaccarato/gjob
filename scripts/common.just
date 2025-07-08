@@ -1,31 +1,31 @@
 #* Variables
 ci :=\
-  env('CI', false)
+  _ci_env
 python_version :=\
-  env('PYTHON_VERSION')
+  _python_version_env
 
-#* Derived vars
-_ci :=\
-  if ci!=empty { true } else { false }
-_python_version :=\
-  python_version
+#* Get environment variables safely
+_ci_env :=\
+  env('CI', empty)
+_python_version_env :=\
+  env('PYTHON_VERSION', empty)
 
 #* Variable passing
 vars :=\
   if override==true { \
     quote('ci=' + ci) \
-    + sp + quote('python_version=' + _python_version) \
+    + sp + quote('python_version=' + python_version) \
   } else { empty }
 override :=\
-  if ci==env('CI', false) { empty } else { true } \
-  || if python_version==env('PYTHON_VERSION') { empty } else { true } \
+  if ci==_ci_env { empty } else { true } \
+  || if python_version==_python_version_env { empty } else { true } \
   || false
 
 #* Binaries
 _uv :=\
-  if _ci==true { 'uv' } else { './uv' }
+  if ci!=empty { 'uv' } else { './uv' }
 _uvx :=\
-  if _ci==true { 'uvx' } else { './uvx' }
+  if ci!=empty { 'uvx' } else { './uvx' }
 
 #* Shell preamble
 pre :=\
