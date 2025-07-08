@@ -84,17 +84,17 @@ $BaseEnvs = ('answers', 'base')
 
 #! Sync basic environment variables and bootstrap uv
 Sync-Env $BaseEnvOnly | Out-Null
+$Uvx = $Env:CI ? 'uvx' : './uvx'
+$Just = @('--from', "rust-just@$Env:JUST_VERSION", 'just')
 $Install = $RemainingArgs -and ($RemainingArgs[0] -eq 'inst')
 if ($Env:CI) {
-    $Uvx = 'uvx'
-    & $Uvx --from "rust-just@$Env:JUST_VERSION" just inst powershell-yaml
+    & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml'
     if (!$Install) {
         $CiEnv = Merge-Envs ($BaseEnvs + 'ci')
         Sync-Env $CiEnv | Out-Null
     }
 }
 else {
-    $Uvx = './uvx'
     if (!$Install) {
         $ContribEnv = Merge-Envs ($BaseEnvs + 'contrib')
         Sync-Env $ContribEnv | Out-Null
@@ -103,4 +103,4 @@ else {
 }
 
 #! Invoke Just if arguments were passed. Can dot-source (e.g. in recipes) with no args
-if ($RemainingArgs) { & $Uvx --from "rust-just@$Env:JUST_VERSION" just @RemainingArgs }
+if ($RemainingArgs) { & $Uvx @Just @RemainingArgs }
