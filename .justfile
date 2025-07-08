@@ -1,27 +1,3 @@
-#* Project
-copier_version :=\
-  env('COPIER_VERSION', empty)
-dev_verbose :=\
-  if env('JUST_VERBOSE', empty)=='1' { true } else { false }
-dev_ci_output_file :=\
-  env('DEV_CI_OUTPUT_FILE', empty)
-dev_pyrightconfig_file :=\
-  env('DEV_PYRIGHTCONFIG_FILE', empty)
-github_repo_name :=\
-  env('GITHUB_REPO_NAME', empty)
-pre_commit_running :=\
-  if env('PRE_COMMIT', empty)=='1' { true } else { false }
-project_name :=\
-  env('PROJECT_NAME', empty)
-project_owner_github_username :=\
-  env('PROJECT_OWNER_GITHUB_USERNAME', empty)
-project_version :=\
-  env('PROJECT_VERSION', empty)
-template_commit :=\
-  env('TEMPLATE_COMMIT', empty)
-vscode_folder_open_task_running :=\
-  if env('VSCODE_FOLDER_OPEN_TASK', empty)=='1' { true } else { false }
-
 #* Settings
 set dotenv-load
 set unstable
@@ -30,10 +6,8 @@ set unstable
 import 'scripts/common.just'
 
 #* Modules
-#? 🏠 `local`
-mod local 'data/local.just'
-#? ✨ `gjob`
-mod gjob 'scripts/gjob.just'
+#? ✨ Project-specific
+mod proj 'scripts/proj.just'
 #? 🌐 Install
 mod inst 'scripts/inst.just'
 
@@ -43,33 +17,23 @@ set shell :=\
 set script-interpreter :=\
   ['pwsh', '-NonInteractive', '-NoProfile']
 
-#* Reusable shell preambles
-pre :=\
-  pwsh_pre + ';'
-script_pre :=\
-  pwsh_pre
-_just :=\
-  './j.ps1'
-
 #* Python packages
 _dev :=\
-  _uvr + sp + quote(project_name + '-dev')
+  _uvr + sp + quote(env("PROJECT_NAME") + '-dev')
 _pipeline :=\
-  _uvr + sp + quote(project_name + '-pipeline')
+  _uvr + sp + quote(env("PROJECT_NAME") + '-pipeline')
 
 #* ♾️ Self
 
 # 📃 [DEFAULT] List recipes
 [group('♾️  Self')]
 list:
-  {{pre}} {{_just}} --list
+  {{_j}} --list
 alias l := list
 
-# ♾️  Run Just recipes...
 [group('♾️  Self')]
-just *args:
-  {{pre}} {{_just}} {{args}}
-alias j := just
+evaluate:
+  {{_j}} --evaluate {{vars}}
 
 #* ⛰️ Environments
 
@@ -77,27 +41,27 @@ alias j := just
 [group('⛰️ Environments')]
 run *args: uv-sync
   @{{ if args==empty { quote(YELLOW+'No command given'+NORMAL) } else {empty} }}
-  -{{ if args!=empty { pre + sp + args } else {empty} }}
+  -{{ if args!=empty { j + sp + args } else {empty} }}
 alias r := run
 
 # 👥 Run recipes as a contributor...
 [group('⛰️ Environments')]
 con *args: uv-sync
-  {{pre}} Sync-ContribEnv | Out-Null
-  {{ if pre_commit_running==true { pre + _just + sp + 'con-git-submodules' } else {empty} }}
-  {{ if vscode_folder_open_task_running==true { \
-    pre + _just + sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
+  {{j}} _sync-contrib-env
+  {{ if env("PRE_COMMIT", empty)=='1' { j + sp + 'con-git-submodules' } else {empty} }}
+  {{ if env("VSCODE_FOLDER_OPEN_TASK_RUNNING", empty)=='1' { \
+    j + sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
   } else {empty} }}
   @{{ if args==empty {_no_recipe_given} else {empty} }}
-  {{ if args!=empty { pre + _just + sp + args } else {empty} }}
+  {{ if args!=empty { j + sp + args } else {empty} }}
 alias c := con
 
 # 🤖 Run recipes in CI...
 [group('⛰️ Environments')]
 ci *args: uv-sync
-  {{pre}} Sync-CiEnv | Out-Null
-  {{pre}} {{_dev}} elevate-pyright-warnings {{dev_pyrightconfig_file}}
-  {{ if args!=empty { pre + _just + sp + args } else {empty} }}
+  {{j}} _sync-ci-env
+  {{pre}} {{_dev}} elevate-pyright-warnings {{env("DEV_PYRIGHTCONFIG_FILE")}}
+  {{ if args!=empty { j + sp + args } else {empty} }}
 
 # 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]
@@ -112,20 +76,74 @@ ci *args: uv-sync
     if (!($SafeDirs -contains $Dir)) { git config --global --add safe.directory $Dir }
   }
   {{ if args==empty { 'return' } else { '#?'+BLUE+sp+'Run recipe'+NORMAL } }}
-  {{ if args==empty {empty} else { _just + sp + args } }}
+  {{ if args==empty {empty} else { j + sp + args } }}
 alias dc := devcontainer
 
 _no_recipe_given :=\
   quote(BLACK+'No recipe given'+NORMAL)
 
+# Sync contributor environment vars
+[script, group('🛠️ Repository setup')]
+_sync-contrib-env:
+  {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
+  {{script_pre}}
+  {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
+  $DevEnvSettingsJson = ''
+  $DevEnvWorkflowYaml = ''
+  (Merge-Envs {{base_envs}}).GetEnumerator() | ForEach-Object {
+    $DevEnvSettingsJson += "`n    `"$($_.Name)`": `"$($_.Value)`","
+    $DevEnvWorkflowYaml += "`n      $($_.Name.ToLower()): { value: `"$($_.Value)`" }"
+  }
+  $DevEnvSettingsJson = "{$($DevEnvSettingsJson.TrimEnd(','))`n  }"
+  $Settings = '.vscode/settings.json'
+  $SettingsContent = Get-Content $Settings -Raw
+  foreach ($Plat in ('linux', 'osx', 'windows')) {
+    $Pat = "(?m)`"terminal\.integrated\.env\.$Plat`"\s*:\s*\{[^}]*\}"
+    $Repl = "`"terminal.integrated.env.$Plat`": $DevEnvSettingsJson"
+    $SettingsContent = $SettingsContent -replace $Pat, $Repl
+  }
+  Set-Content $Settings $SettingsContent -NoNewline
+  $Workflow = '.github/workflows/env.yml'
+  $WorkflowPat = '(?m)^\s{4}outputs:(?:\s\{\}|(?:\n^\s{6}.+$)+)'
+  $WorkflowRepl = "    outputs:$DevEnvWorkflowYaml"
+  $WorkflowContent = (Get-Content $Workflow -Raw) -replace $WorkflowPat, $WorkflowRepl
+  Set-Content $Workflow $WorkflowContent -NoNewline
+  $Env:DEV_ENV = 'contrib'
+  $ContribEnv = Merge-Envs ({{base_envs}} + $Env:DEV_ENV)
+  Sync-Env $ContribEnv
+
+# Sync CI environment vars
+[script, group('🛠️ Repository setup')]
+_sync-ci-env:
+  {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
+  {{script_pre}}
+  {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
+  $Env:DEV_ENV = 'ci'
+  $CiEnv = Merge-Envs ({{base_envs}} + $Env:DEV_ENV)
+  Sync-Env $CiEnv
+  #? Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
+  if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }
+  if ( !(Get-Content $Env:DEV_CI_PATH_FILE | Select-String -Pattern '.venv') ) {
+    $Workdir = $PWD -replace '\\', '/'
+    Add-Content $Env:DEV_CI_PATH_FILE ("$Workdir/.venv/bin", "$Workdir/.venv/scripts")
+  }
+  #? Write environment vars to CI environment file
+  $CiEnvText = ''
+  $CiEnv['CI_ENV_SET'] = '1'
+  $CiEnv.GetEnumerator() | ForEach-Object { $CiEnvText += "$($_.Name)=$($_.Value)`n" }
+  if (!(Test-Path $Env:DEV_CI_ENV_FILE)) { New-Item $Env:DEV_CI_ENV_FILE | Out-Null }
+  if (!(Get-Content $Env:DEV_CI_ENV_FILE | Select-String -Pattern 'CI_ENV_SET')) {
+      $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
+  }
+
+base_envs :=\
+ "('answers', 'base')"
+
 #* 🟣 uv
 
-#? Uv invocations
+#? uv invocations
 _uv_options :=\
-  '--all-packages' \
-  + sp + '--python' + ( \
-    if python_version==empty {empty} else { sp + quote(python_version) } \
-  )
+  '--all-packages' + sp + '--python' + sp + quote(_python_version)
 _uvr :=\
   _uv + sp + 'run' + sp + _uv_options
 _uvs :=\
@@ -218,7 +236,7 @@ alias pre-commit := tool-pre-commit
 # 🔵 pre-commit run --all-files ...
 [group('⚙️  Tools')]
 tool-pre-commit-all *args:
-  {{pre}} {{_just}} pre-commit --all-files {{args}}
+  {{j}} pre-commit --all-files {{args}}
 alias pre-commit-all := tool-pre-commit-all
 
 # ✔️  Check that the working tree is clean
@@ -251,13 +269,13 @@ alias ruff := tool-ruff
 # 🛞  Build wheel, compile binary, and sign...
 [group('📦 Packaging')]
 pkg-build *args:
-  {{pre}} {{_uvr}} {{project_name}} {{args}}
+  {{pre}} {{_uvr}} {{env("PROJECT_NAME")}} {{args}}
 alias build := pkg-build
 
 # 📜 Build changelog for new version
 [group('📦 Packaging')]
 pkg-build-changelog version:
-  {{pre}} {{_templ-sync}} --data 'project_version={{version}}'
+  {{pre}} {{_templ-sync}} --data 'env("PROJECT_VERSION")={{version}}'
   {{pre}} {{_uvr}} towncrier build --yes --version '{{version}}'
   {{pre}} {{_post_template_task}}
   -{{pre}} try { git stage 'changelog/*.md' } catch {}
@@ -267,8 +285,8 @@ pkg-build-changelog version:
 [group('📦 Packaging')]
 pkg-release:
   {{pre}} git add --all
-  {{pre}} git commit -m '{{project_version}}'
-  {{pre}} git tag --force --sign -m {{project_version}} {{project_version}}
+  {{pre}} git commit -m '{{env("PROJECT_VERSION")}}'
+  {{pre}} git tag --force --sign -m {{env("PROJECT_VERSION")}} {{env("PROJECT_VERSION")}}
   {{pre}} git push
 alias release := pkg-release
 
@@ -327,7 +345,7 @@ con-update-changelog-latest-commit:
     --content ( \
       "$(git log -1 --format='%s') ([$(git rev-parse --short HEAD)]" \
       + '(' \
-        + 'https://github.com/{{project_owner_github_username}}/{{github_repo_name}}' \
+        + 'https://github.com/{{env("PROJECT_OWNER_GITHUB_USERNAME")}}/{{env("GITHUB_REPO_NAME")}}' \
         + "/commit/$(git rev-parse HEAD))" \
       + ')' \
       + "`n" \
@@ -338,7 +356,7 @@ con-update-changelog-latest-commit:
 # 🏷️  Set CI output to latest release
 [group('📤 CI Output')]
 ci-out-latest-release:
-  {{pre}} Set-Content {{dev_ci_output_file}} "latest_release=$( \
+  {{pre}} Set-Content {{env("DEV_CI_OUTPUT_FILE")}} "latest_release=$( \
     ($Latest = gh release list --limit 1 --json tagName | \
       ConvertFrom-Json | Select-Object -ExpandProperty 'tagName' \
     ) ? $Latest : '-1' \
@@ -391,17 +409,17 @@ _sync_template :=\
 _recopy_template :=\
   _copier_recopy + sp + _current_template
 _post_template_task :=\
-  'git add --all; git reset;' + sp + _just + sp + 'con'
+  'git add --all; git reset;' + sp + j + sp + 'con'
 _latest_template :=\
   quote('--vcs-ref=HEAD')
 _current_template :=\
-  quote('--vcs-ref=' + template_commit)
+  quote('--vcs-ref=' + env("TEMPLATE_COMMIT"))
 _copier_recopy :=\
   _copier + sp + 'recopy'
 _copier_update :=\
   _copier + sp + 'update'
 _copier :=\
-  _uvx + sp + quote('copier@' + copier_version)
+  _uvx + sp + quote('copier@' + env("COPIER_VERSION"))
 
 #* 🛠️ Repository setup
 
@@ -419,11 +437,11 @@ _copier :=\
     }
     gh repo edit --description ($Matches[1] -Replace "`n", ' ' -Replace ' {4}', '')
     $Matches = $null
-    gh repo edit --homepage 'https://{{project_owner_github_username}}.github.io/{{github_repo_name}}/'
+    gh repo edit --homepage 'https://{{env("PROJECT_OWNER_GITHUB_USERNAME")}}.github.io/{{env("GITHUB_REPO_NAME")}}/'
   }
   {{'#?'+BLUE+sp+'Set up repo and push'+NORMAL}}
   git submodule add --force --name 'typings' 'https://github.com/softboiler/python-type-stubs.git' 'typings'
-  {{_just}} con
+  {{j}} con
   git add --all
   try { git commit --no-verify -m 'Prepare template using softboiler/copier-pipeline' }
   catch {}

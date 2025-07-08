@@ -15,8 +15,8 @@ set script-interpreter :=\
   ['bash', '--noprofile', '--norc', '--posix']
 
 #* Reusable shell preamble
-pre :=\
-  if os_family()=='windows' { pwsh_pre + ';' } else { empty } \
+inst_pre :=\
+  if os_family()=='windows' { _j + ';' } else { empty } \
   || 'set -o errexit -o nounset -o pipefail -o xtrace;'
 
 #* Messages
@@ -33,7 +33,7 @@ _just_inst :=\
 just_version :=\
   env('JUST_VERSION', empty)
 win_inst :=\
-  pre \
+  inst_pre \
   + sp + 'winget install' \
   + sp + '--accept-package-agreements' \
   + sp + '--accept-source-agreements' \
@@ -44,7 +44,7 @@ win_inst :=\
   + sp + '--source' + sp + quote('winget') \
   + sp + '--id '
 mac_inst :=\
-  pre + sp + brew_bin + sp + 'update;' + sp + brew_bin + sp + 'install' + sp
+  inst_pre + sp + brew_bin + sp + 'update;' + sp + brew_bin + sp + 'install' + sp
 mac_inst_cask :=\
   mac_inst + '--cask' + sp
 linux_inst :=\
@@ -61,7 +61,7 @@ linux_inst_snap :=\
 end_snap :=\
   sp + '--classic'
 _linux_pre :=\
-  pre + sp + sudo
+  inst_pre + sp + sudo
 
 #* Linux package managers
 pkg_bin :=\
@@ -131,7 +131,7 @@ git_found :=\
 inst_git :=\
   _just_inst + 'brew;' + sp \
   + ( \
-    if os_family()=='windows' { pre + sp + inst_git_win } else { empty } \
+    if os_family()=='windows' { inst_pre + sp + inst_git_win } else { empty } \
     || if os()=='macos' { mac_inst + quote('git') } else { empty } \
     || linux_inst + quote('git') \
   )
@@ -210,7 +210,7 @@ _inst_powershell_yaml :=\
         + sp + '-Name' + sp + quote('powershell-yaml') \
         + sp + '-RequiredVersion' + sp + quote(powershell_yaml_version) \
     + sp + '}' \
-    + if ci==true { 'finally {} }' } \
+    + if _ci==true { 'finally {} }' } \
     else { \
       sp + 'finally {' \
       + sp + 'Set-PSRepository' + sp + quote('PSGallery') \
@@ -235,9 +235,9 @@ uv_bin :=\
 _uv_bin :=\
   './uv' + bin_ext
 inst_uv_win :=\
-  pre + sp + 'Invoke-RestMethod' + sp + _inst_uv_script + sp + '| Invoke-Expression'
+  inst_pre + sp + 'Invoke-RestMethod' + sp + _inst_uv_script + sp + '| Invoke-Expression'
 inst_uv_unix :=\
-  pre + sp + "curl --proto '=https' --tlsv1.2 -LsSf" + sp + _inst_uv_script
+  inst_pre + sp + "curl --proto '=https' --tlsv1.2 -LsSf" + sp + _inst_uv_script
 _inst_uv_script :=\
   quote('https://astral.sh/uv/' + uv_version + '/install' + sh_ext)
 uv_version :=\

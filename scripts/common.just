@@ -1,17 +1,47 @@
-#* Versions
-python_version :=\
-  env('PYTHON_VERSION', empty)
+#* Variables
 ci :=\
-  if env('CI', empty)!=empty { true } else { false }
+  env('CI', false)
+preamble :=\
+  true
+python_version :=\
+  env('PYTHON_VERSION')
 
-# Binaries
+#* Derived vars
+_ci :=\
+  if ci!=empty { true } else { false }
+_python_version :=\
+  python_version
+
+#* Variable passing
+vars :=\
+  if override==true { \
+    quote('ci=' + ci) \
+    + sp + quote('preamble=' + preamble) \
+    + sp + quote('python_version=' + _python_version) \
+  } else { empty }
+override :=\
+  if ci==env('CI', false) { empty } else { true } \
+  || if preamble==true { empty } else { true } \
+  || if python_version==env('PYTHON_VERSION') { empty } else { true } \
+  || false
+
+#* Binaries
 _uv :=\
-  if ci==true { 'uv' } else { './uv' }
+  if _ci==true { 'uv' } else { './uv' }
 _uvx :=\
-  if ci==true { 'uvx' } else { './uvx' }
+  if _ci==true { 'uvx' } else { './uvx' }
 
-#* Reusable shell preamble
-pwsh_pre := '.' + sp + 'scripts/pre.ps1'
+#* Shell preamble
+pre :=\
+  script_pre + ';'
+script_pre :=\
+  '.' + sp + _j + _preamble
+j :=\
+  _j + sp + vars + _preamble
+_j :=\
+  './j.ps1'
+_preamble :=\
+  if preamble==true { sp + 'proj::preamble' } else { empty }
 
 #* File extensions
 sh_ext :=\
