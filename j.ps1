@@ -174,7 +174,7 @@ Merge-Envs ('answers', 'base') | Sync-Env
 
 #! Populate missing variables
 $MissingVars = @()
-$Env:JUST_VARIABLES.Split(', ') | ForEach-Object {
+('ci', 'python_version') | ForEach-Object {
     if (($Value = $Vars[$_])) {
         Set-Item "Env:$($_.ToUpper())" $Value
     }

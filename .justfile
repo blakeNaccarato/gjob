@@ -53,22 +53,21 @@ con *args: uv-sync
   {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
   {{script_pre}}
   {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
-  $DevEnvSettingsJson = ''
   $Environ = Merge-Envs -Upper {{base_envs}}
-  $Environ.GetEnumerator() | ForEach-Object {
-    $DevEnvSettingsJson += "`n    `"$($_.Name)`": `"$($_.Value)`","
-  }
-  $DevEnvSettingsJson = "{$($DevEnvSettingsJson.TrimEnd(','))`n  }"
+  $DevEnvSettingsJson = $Environ | ConvertTo-Json -Compress
   $Settings = '.vscode/settings.json'
   $SettingsContent = Get-Content $Settings -Raw
   foreach ($Plat in ('linux', 'osx', 'windows')) {
-    $Pat = "(?m)`"terminal\.integrated\.env\.$Plat`"\s*:\s*\{[^}]*\}"
-    $Repl = "`"terminal.integrated.env.$Plat`": $DevEnvSettingsJson"
+    $Pat = '(?m)"terminal\.integrated\.env\.$Plat"\s*:\s*\{[^}]*\}'
+    $Repl = '"terminal.integrated.env.$Plat": ' + "$DevEnvSettingsJson"
     $SettingsContent = $SettingsContent -replace $Pat, $Repl
   }
   Set-Content $Settings $SettingsContent -NoNewline
+  if (git status --porcelain $Settings) {
+    try { {{uvr}} pre-commit run 'prettier' --files $Settings | Out-Null } catch {}
+  }
   $LimitedEnviron = [ordered]@{}
-  (Limit-Env -Lower $Environ $Environ['ci_variables'].Split(', ')).GetEnumerator() |
+  (Limit-Env -Lower $Environ '{{ci_variables}}'.Split()).GetEnumerator() |
     ForEach-Object { $LimitedEnviron[$_.Name] = @{ value = $_.Value } }
   $Workflow = '.github/workflows/env.yml'
   $WorkflowData = Get-Content $Workflow | ConvertFrom-Yaml -Ordered
@@ -78,8 +77,10 @@ con *args: uv-sync
   '@
   $WorkflowData.on.workflow_call.outputs = $LimitedEnviron
   $WorkflowData | ConvertTo-Yaml | Add-Content $Workflow -NoNewline
-  try { {{uvr}} pre-commit run 'trailing-whitespace' --files $Workflow | Out-Null } catch {}
-  try { {{uvr}} pre-commit run 'mixed-line-ending' --all-files | Out-Null } catch {}
+  if (git status --porcelain $Workflow) {
+    try { {{uvr}} pre-commit run 'trailing-whitespace' --files $Workflow | Out-Null } catch {}
+    try { {{uvr}} pre-commit run 'mixed-line-ending' --files $Workflow | Out-Null } catch {}
+  }
   $Env:DEV_ENV = 'contrib'
   Get-Env $Env:DEV_ENV | Sync-Env
   {{ if env("PRE_COMMIT", empty)=='1' { j + sp + 'con-git-submodules' } else {empty} }}
@@ -112,7 +113,7 @@ ci *args: uv-sync
   if (!(Get-Content $Env:DEV_CI_ENV_FILE | Select-String -Pattern 'CI_ENV_SET')) {
       $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
   }
-  {{dev}} elevate-pyright-warnings $Env:DEV_PYRIGHTCONFIG_FILE
+  {{dev}} elevate-pyright-warnings
   {{ if args!=empty { j + sp + args } else {empty} }}
 
 # 📦 Run recipes in devcontainer
@@ -133,6 +134,13 @@ alias dc := devcontainer
 
 base_envs :=\
  "('answers', 'base')"
+ci_variables :=\
+  'actions_runner' \
+  + sp + 'project_name' \
+  + sp + 'project_version' \
+  + sp + 'publish_project' \
+  + sp + 'pyright_python_pylance_version' \
+  + sp + 'uv_version'
 
 #* 🟣 uv
 

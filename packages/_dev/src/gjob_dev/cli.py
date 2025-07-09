@@ -7,4 +7,4 @@ from cappa.base import command
 class ElevatePyrightWarnings:
     """Elevate Pyright warnings to errors."""
 
-    path: Path | None = None
+    path: Path | None = Path("pyrightconfig.json")
