@@ -35,7 +35,7 @@ function Sync-Env {
     param([Parameter(Mandatory, ValueFromPipeline)][hashtable]$Environ)
     process {
         $Environ.GetEnumerator() | ForEach-Object {
-            Set-Item "Env:$(Set-Case $_.Name -Upper)" $_.Value
+            Set-Item "Env:$($_.Name | Set-Case -Upper)" $_.Value
         }
     }
 }
@@ -93,16 +93,8 @@ function Get-Env {
             $Value = [string]$_.Value
             if (('false', '0') -contains $Value.ToLower()) { $Value = $null }
             if ($Value.ToLower() -eq 'true') { $Value = 'true' }
-            if ($Value -ne '') {
-                if ( $Value -match '^Env:.+$' ) {
-                    if ( $EnvVar = Get-EnvVar $Value ) { $Value = $EnvVar }
-                }
-                elseif (('false', 'true') -contains ($BoolLike = $Value.ToLower())) {
-                    $Value = $BoolLike
-                }
-                else { $Value = $Value }
-                $Environ[$Name] = $Value
-            }
+            if ($Value -match '^Env:.+$') { $Value = ($EnvVar = Get-EnvVar $Value) ? $EnvVar : '' }
+            if ($Value -ne '') { $Environ[$Name] = $Value }
         }
         return Sort-Env $Environ
     }
@@ -161,7 +153,7 @@ if ($RemainingArgs) {
         ($Idx -lt $RemainingArgs.Count) -and
         ($RemainingArgs[($Idx - 1)..($RemainingArgs.Count - 1)] -contains '--set')
     ) {
-        throw "All variable setting with `--set key val` must occur first"
+        throw "All variable setting done with `--set key val` must occur first"
     }
 }
 
