@@ -59,10 +59,14 @@ function Limit-Env {
 function Merge-Envs {
     <#.SYNOPSIS
     Merge environment variables.#>
-    param([Parameter(Mandatory)][string[]]$Envs)
+    param(
+        [Parameter(Mandatory)][string[]]$Envs,
+        [switch]$Lower,
+        [switch]$Upper
+    )
     $Merged = [ordered]@{}
     $Envs | Get-Env | ForEach-Object { $_.GetEnumerator() } | ForEach-Object {
-        $Merged[$_.Name] = $_.Value
+        $Merged[($_.Name | Set-Case -Lower:$Lower -Upper:$Upper)] = $_.Value
     }
     return Sort-Env $Merged
 }

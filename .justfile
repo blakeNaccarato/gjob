@@ -54,7 +54,7 @@ con *args: uv-sync
   {{script_pre}}
   {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
   $DevEnvSettingsJson = ''
-  $Environ = Merge-Envs {{base_envs}}
+  $Environ = Merge-Envs -Upper {{base_envs}}
   $Environ.GetEnumerator() | ForEach-Object {
     $DevEnvSettingsJson += "`n    `"$($_.Name)`": `"$($_.Value)`","
   }
