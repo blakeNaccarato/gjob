@@ -74,8 +74,7 @@ con *args: uv-sync
   $WorkflowContent = (Get-Content $Workflow -Raw) -replace $WorkflowPat, $WorkflowRepl
   Set-Content $Workflow $WorkflowContent -NoNewline
   $Env:DEV_ENV = 'contrib'
-  $ContribEnv = Merge-Envs ({{base_envs}} + $Env:DEV_ENV)
-  Sync-Env $ContribEnv
+  Get-Env $Env:DEV_ENV | Sync-Env
   {{ if env("PRE_COMMIT", empty)=='1' { j + sp + 'con-git-submodules' } else {empty} }}
   {{ if env("VSCODE_FOLDER_OPEN_TASK_RUNNING", empty)=='1' { \
     j + sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \

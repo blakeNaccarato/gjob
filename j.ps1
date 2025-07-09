@@ -45,9 +45,14 @@ function Merge-Envs {
     param([Parameter(Mandatory, ValueFromPipeline)][string[]]$Envs)
     process {
         $Merged = [ordered]@{}
-        @( $Envs | ForEach-Object { (Get-Env $_).GetEnumerator() } ) | Sort-Object 'Name' |
-            ForEach-Object { $Merged[$_.Name] = $_.Value }
-        return $Merged
+        $Envs | Get-Env | ForEach-Object { $_.GetEnumerator() } | ForEach-Object {
+            $Merged[$_.Name] = $_.Value
+        }
+        $Sorted = [ordered]@{}
+        $Merged.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
+            $Sorted[$_.Name] = $_.Value
+        }
+        return $Sorted
     }
 }
 function Get-Env {
@@ -87,18 +92,15 @@ $RemainingArgs | ForEach-Object {
 }
 
 #! Sync basic environment variables and bootstrap uv
-Get-Env 'base' | Sync-Env
 $Uvx = $Env:CI ? 'uvx' : './uvx'
+Get-Env 'base' | Sync-Env
 $Just = @('--from', "rust-just@$Env:JUST_VERSION", 'just')
-$BaseEnvs = ('answers', 'base')
-if ($Vars['ci'] ? $Vars['ci'] : $Env:CI) {
+$CI = ($Vars['ci'] ? $Vars['ci'] : $Env:CI)
+if (!$Env:JUST -and (($null -ne $CI) -and ($CI -ne 0))) {
     & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml'
-    Merge-Envs ($BaseEnvs + 'ci') | Sync-Env
 }
-else {
-    Merge-Envs ($BaseEnvs + 'contrib') | Sync-Env
-    Sync-Uv
-}
+Merge-Envs ('answers', 'base') | Sync-Env
+if (!$CI) { Sync-Uv }
 
 #! Populate missing variables
 $MissingVars = @()
