@@ -32,63 +32,137 @@ function Sync-Uv {
 function Sync-Env {
     <#.SYNOPSIS
     Sync environment variables.#>
-    param([Parameter(Mandatory, ValueFromPipeline)][hashtable]$Env)
+    param([Parameter(Mandatory, ValueFromPipeline)][hashtable]$Environ)
     process {
-        $Env.GetEnumerator() | ForEach-Object {
-            Set-Item "Env:$($_.Name)" ($_.Value ? $_.Value : $null)
+        $Environ.GetEnumerator() | ForEach-Object {
+            Set-Item "Env:$(Set-Case $_.Name -Upper)" $_.Value
         }
     }
+}
+function Limit-Env {
+    <#.SYNOPSIS
+    Limit environment to specific variables.#>
+    param(
+        [Parameter(Mandatory)][hashtable]$Environ,
+        [Parameter(Mandatory)][string[]]$Vars,
+        [switch]$Lower,
+        [switch]$Upper
+    )
+    $Limited = [ordered]@{}
+    $Environ.GetEnumerator() | ForEach-Object {
+        if ($Vars -contains $_.Name) {
+            $Limited[($_.Name | Set-Case -Lower:$Lower -Upper:$Upper)] = $_.Value
+        }
+    }
+    return Sort-Env $Limited
 }
 function Merge-Envs {
     <#.SYNOPSIS
     Merge environment variables.#>
-    param([Parameter(Mandatory, ValueFromPipeline)][string[]]$Envs)
-    process {
-        $Merged = [ordered]@{}
-        $Envs | Get-Env | ForEach-Object { $_.GetEnumerator() } | ForEach-Object {
-            $Merged[$_.Name] = $_.Value
-        }
-        $Sorted = [ordered]@{}
-        $Merged.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
-            $Sorted[$_.Name] = $_.Value
-        }
-        return $Sorted
+    param([Parameter(Mandatory)][string[]]$Envs)
+    $Merged = [ordered]@{}
+    $Envs | Get-Env | ForEach-Object { $_.GetEnumerator() } | ForEach-Object {
+        $Merged[$_.Name] = $_.Value
     }
+    return Sort-Env $Merged
 }
 function Get-Env {
     <#.SYNOPSIS
     Get environment variables.#>
-    param([Parameter(Mandatory, ValueFromPipeline)][string]$Name)
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)][string]$Name,
+        [switch]$Lower,
+        [switch]$Upper
+    )
     process {
         $Envs = (Get-Content 'env.json' | ConvertFrom-Json)
         if (($Path = $Envs.$Name) -is [string]) {
-            if ($Path.EndsWith('.json')) { $RawEnv = Get-Content $Path | ConvertFrom-Json }
+            if ($Path.EndsWith('.json')) {
+                $RawEnviron = Get-Content $Path | ConvertFrom-Json
+            }
             elseif ($Path.EndsWith('.yaml') -or $Path.EndsWith('.yml')) {
-                $RawEnv = Get-Content $Path | ConvertFrom-Yaml
+                $RawEnviron = Get-Content $Path | ConvertFrom-Yaml
             }
             else { throw "Could not parse environment '$Name' at '$Path'" }
         }
-        else { $RawEnv = $Envs.$Name.PsObject.Properties }
-        $DevEnv = [ordered]@{}
-        $RawEnv.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
-            $Name = (($_.Name -match '^_.+$') ? "template$($_.Name)" : $_.Name).ToUpper()
-            if ( $_.Value -match '^Env:.+$' ) {
-                if ( $EnvVar = Get-Item $_.Value -ErrorAction 'Ignore' ) {
-                    $DevEnv[$Name] = $EnvVar.Value
+        else { $RawEnviron = $Envs.$Name.PsObject.Properties }
+        $Environ = [ordered]@{}
+        $RawEnviron.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
+            $Name = (($_.Name -match '^_.+$') ? "template$($_.Name)" : $_.Name)
+            $Name = $Name | Set-Case -Lower:$Lower -Upper:$Upper
+            $Value = [string]$_.Value
+            if (('false', '0') -contains $Value.ToLower()) { $Value = $null }
+            if ($Value.ToLower() -eq 'true') { $Value = 'true' }
+            if ($Value -ne '') {
+                if ( $Value -match '^Env:.+$' ) {
+                    if ( $EnvVar = Get-EnvVar $Value ) { $Value = $EnvVar }
                 }
+                elseif (('false', 'true') -contains ($BoolLike = $Value.ToLower())) {
+                    $Value = $BoolLike
+                }
+                else { $Value = $Value }
+                $Environ[$Name] = $Value
             }
-            else { $DevEnv[$Name] = $_.Value }
         }
-        return $DevEnv
+        return Sort-Env $Environ
+    }
+}
+function Sort-Env {
+    <#.SYNOPSIS
+    Sort environment variables by name.#>
+    param([Parameter(Mandatory, ValueFromPipeline)][hashtable]$Environ)
+    $Sorted = [ordered]@{}
+    $Environ.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
+        $Sorted[$_.Name] = $_.Value
+    }
+    return $Sorted
+}
+function Get-EnvVar {
+    <#.SYNOPSIS
+    Get value of environment variable.#>
+    param([Parameter(Mandatory, ValueFromPipeline)][string]$Name)
+    process {
+        $Var = Get-Item $Name -ErrorAction 'Ignore'
+        if (!$Var) { return }
+        return $Var | Select-Object -ExpandProperty 'Value'
+    }
+}
+function Set-Case {
+    <#.SYNOPSIS
+    Set case of a string to upper or lower.#>
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)][string]$Name,
+        [switch]$Upper,
+        [switch]$Lower
+    )
+    process {
+        if ($Upper) { return $Name.ToUpper() }
+        elseif ($Lower) { return $Name.ToLower() }
+        return $Name
     }
 }
 
 #! Populate supplied variables
 $Vars = @{}
-$Idx = 0
-$RemainingArgs | ForEach-Object {
-    if ($_ -eq '--set') { $Vars[$RemainingArgs[$Idx + 1]] = $RemainingArgs[$Idx + 2] }
-    $Idx++
+if ($RemainingArgs) {
+    $Idx = 0
+    for ($Idx = 0; $Idx -lt $RemainingArgs.Count; $Idx++) {
+        if (
+            ($RemainingArgs[$Idx] -eq '--set') -and
+            (($Idx + 2) -lt $RemainingArgs.Count)
+        ) {
+            $Vars[$RemainingArgs[$Idx + 1]] = $RemainingArgs[$Idx + 2]
+            $Idx += 2
+            continue
+        }
+        else { break }
+    }
+    if (
+        ($Idx -lt $RemainingArgs.Count) -and
+        ($RemainingArgs[($Idx - 1)..($RemainingArgs.Count - 1)] -contains '--set')
+    ) {
+        throw "All variable setting with `--set key val` must occur first"
+    }
 }
 
 #! Sync basic environment variables and bootstrap uv
@@ -109,8 +183,8 @@ $Env:JUST_VARIABLES.Split(', ') | ForEach-Object {
         Set-Item "Env:$($_.ToUpper())" $Value
     }
     else {
-        $EnvVar = (Get-Item -ErrorAction 'Ignore' "Env:$($_.ToUpper())")
-        $MissingVars += ('--set', $_, ($EnvVar ? $EnvVar.Value : ''''''))
+        $EnvVar = Get-EnvVar "Env:$($_.ToUpper())"
+        $MissingVars += ('--set', $_, ($EnvVar ? $EnvVar : ''''''))
     }
 }
 

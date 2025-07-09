@@ -54,10 +54,9 @@ con *args: uv-sync
   {{script_pre}}
   {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
   $DevEnvSettingsJson = ''
-  $DevEnvWorkflowYaml = ''
-  (Merge-Envs {{base_envs}}).GetEnumerator() | ForEach-Object {
+  $Environ = Merge-Envs {{base_envs}}
+  $Environ.GetEnumerator() | ForEach-Object {
     $DevEnvSettingsJson += "`n    `"$($_.Name)`": `"$($_.Value)`","
-    $DevEnvWorkflowYaml += "`n      $($_.Name.ToLower()): { value: `"$($_.Value)`" }"
   }
   $DevEnvSettingsJson = "{$($DevEnvSettingsJson.TrimEnd(','))`n  }"
   $Settings = '.vscode/settings.json'
@@ -68,11 +67,19 @@ con *args: uv-sync
     $SettingsContent = $SettingsContent -replace $Pat, $Repl
   }
   Set-Content $Settings $SettingsContent -NoNewline
+  $LimitedEnviron = [ordered]@{}
+  (Limit-Env -Lower $Environ $Environ['ci_variables'].Split(', ')).GetEnumerator() |
+    ForEach-Object { $LimitedEnviron[$_.Name] = @{ value = $_.Value } }
   $Workflow = '.github/workflows/env.yml'
-  $WorkflowPat = '(?m)^\s{4}outputs:(?:\s\{\}|(?:\n^\s{6}.+$)+)'
-  $WorkflowRepl = "    outputs:$DevEnvWorkflowYaml"
-  $WorkflowContent = (Get-Content $Workflow -Raw) -replace $WorkflowPat, $WorkflowRepl
-  Set-Content $Workflow $WorkflowContent -NoNewline
+  $WorkflowData = Get-Content $Workflow | ConvertFrom-Yaml -Ordered
+  Set-Content $Workflow @'
+  # Environment variables
+  #! Please only update by modifying `env.json` then running `./j.ps1 con` to sync
+  '@
+  $WorkflowData.on.workflow_call.outputs = $LimitedEnviron
+  $WorkflowData | ConvertTo-Yaml | Add-Content $Workflow -NoNewline
+  try { {{uvr}} pre-commit run 'trailing-whitespace' --files $Workflow | Out-Null } catch {}
+  try { {{uvr}} pre-commit run 'mixed-line-ending' --all-files | Out-Null } catch {}
   $Env:DEV_ENV = 'contrib'
   Get-Env $Env:DEV_ENV | Sync-Env
   {{ if env("PRE_COMMIT", empty)=='1' { j + sp + 'con-git-submodules' } else {empty} }}
@@ -217,7 +224,7 @@ tool-docs-build:
 
 # 🔵 pre-commit run ...
 [group('⚙️  Tools')]
-tool-pre-commit *args: con
+tool-pre-commit *args:
   {{pre}} {{uvr}} pre-commit run --verbose {{args}}
 alias pre-commit := tool-pre-commit
 
@@ -305,7 +312,7 @@ hooks :=\
 # 👥 Normalize line endings
 [group('👥 Contributor environment setup')]
 con-norm-line-endings:
-  -{{pre}} try { {{uvr}} pre-commit run mixed-line-ending --all-files | Out-Null } catch {}
+  -{{pre}} try { {{uvr}} pre-commit run 'mixed-line-ending' --all-files | Out-Null } catch {}
 
 # 👥 Run dev task...
 [group('👥 Contributor environment setup')]
