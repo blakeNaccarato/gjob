@@ -73,8 +73,8 @@ function Get-Env {
         $RawEnv.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
             $Name = (($_.Name -match '^_.+$') ? "template$($_.Name)" : $_.Name).ToUpper()
             if ( $_.Value -match '^Env:.+$' ) {
-                if ( $EnvValue = Get-Item $_.Value -ErrorAction 'Ignore' ) {
-                    $DevEnv[$Name] = $EnvValue
+                if ( $EnvVar = Get-Item $_.Value -ErrorAction 'Ignore' ) {
+                    $DevEnv[$Name] = $EnvVar.Value
                 }
             }
             else { $DevEnv[$Name] = $_.Value }
@@ -99,8 +99,8 @@ $CI = ($Vars['ci'] ? $Vars['ci'] : $Env:CI)
 if (!$Env:JUST -and (($null -ne $CI) -and ($CI -ne 0))) {
     & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml'
 }
+else { Sync-Uv }
 Merge-Envs ('answers', 'base') | Sync-Env
-if (!$CI) { Sync-Uv }
 
 #! Populate missing variables
 $MissingVars = @()
