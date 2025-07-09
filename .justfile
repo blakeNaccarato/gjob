@@ -96,7 +96,7 @@ ci *args: uv-sync
   {{script_pre}}
   {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
   $Env:DEV_ENV = 'ci'
-  $CiEnv = Merge-Envs ({{base_envs}} + $Env:DEV_ENV)
+  $CiEnv = Merge-Envs -Upper ({{base_envs}} + $Env:DEV_ENV)
   Sync-Env $CiEnv
   #? Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
   if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }
