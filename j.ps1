@@ -78,29 +78,43 @@ function Get-Env {
     }
 }
 
-#! Environments
-$BaseEnvOnly = Get-Env 'base'
-$BaseEnvs = ('answers', 'base')
+#! Populate supplied variables
+$Vars = @{}
+$Idx = 0
+$RemainingArgs | ForEach-Object {
+    if ($_ -eq '--set') { $Vars[$RemainingArgs[$Idx + 1]] = $RemainingArgs[$Idx + 2] }
+    $Idx++
+}
 
 #! Sync basic environment variables and bootstrap uv
-Sync-Env $BaseEnvOnly | Out-Null
+Get-Env 'base' | Sync-Env
 $Uvx = $Env:CI ? 'uvx' : './uvx'
 $Just = @('--from', "rust-just@$Env:JUST_VERSION", 'just')
-$Install = $RemainingArgs -and ($RemainingArgs[0] -eq 'inst')
-if ($Env:CI) {
+$BaseEnvs = ('answers', 'base')
+if ($Vars['ci'] ? $Vars['ci'] : $Env:CI) {
     & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml'
-    if (!$Install) {
-        $CiEnv = Merge-Envs ($BaseEnvs + 'ci')
-        Sync-Env $CiEnv | Out-Null
-    }
+    Merge-Envs ($BaseEnvs + 'ci') | Sync-Env
 }
 else {
-    if (!$Install) {
-        $ContribEnv = Merge-Envs ($BaseEnvs + 'contrib')
-        Sync-Env $ContribEnv | Out-Null
-    }
+    Merge-Envs ($BaseEnvs + 'contrib') | Sync-Env
     Sync-Uv
 }
 
+#! Populate missing variables
+$MissingVars = @()
+$Env:JUST_VARIABLES.Split(', ') | ForEach-Object {
+    if (($Value = $Vars[$_])) {
+        Set-Item "Env:$($_.ToUpper())" $Value
+    }
+    else {
+        $EnvVar = (Get-Item -ErrorAction 'Ignore' "Env:$($_.ToUpper())")
+        $MissingVars += ('--set', $_, ($EnvVar ? $EnvVar.Value : ''''''))
+    }
+}
+
 #! Invoke Just if arguments were passed. Can dot-source (e.g. in recipes) with no args
-if ($RemainingArgs) { & $Uvx @Just @RemainingArgs }
+$UvxArgs = $Just + $MissingVars + $RemainingArgs
+if (($RemainingArgs) -or (!$Env:JUST)) {
+    $Env:JUST = '1'
+    & $Uvx $UvxArgs
+}

@@ -1,40 +1,21 @@
 #* Variables
 ci :=\
-  _ci_env
+  empty
 python_version :=\
-  _python_version_env
-
-#* Get environment variables safely
-_ci_env :=\
-  env('CI', empty)
-_python_version_env :=\
-  env('PYTHON_VERSION', empty)
-
-#* Variable passing
-vars :=\
-  if override==true { \
-    quote('ci=' + ci) \
-    + sp + quote('python_version=' + python_version) \
-  } else { empty }
-override :=\
-  if ci==_ci_env { empty } else { true } \
-  || if python_version==_python_version_env { empty } else { true } \
-  || false
+  empty
 
 #* Binaries
-_uv :=\
+uv :=\
   if ci!=empty { 'uv' } else { './uv' }
-_uvx :=\
+uvx :=\
   if ci!=empty { 'uvx' } else { './uvx' }
 
 #* Shell preamble
 pre :=\
   script_pre + ';'
 script_pre :=\
-  '.' + sp + _j
+  '.' + sp + j
 j :=\
-  _j + if override==true { sp + vars } else { empty }
-_j :=\
   './j.ps1'
 
 #* File extensions
@@ -59,7 +40,7 @@ dquote :=\
   '"'
 
 #* Messages
-_na :=\
+na :=\
   'not applicable for this OS.'
 
 #* Used to represent a null result where Just would otherwise mishandle a ''

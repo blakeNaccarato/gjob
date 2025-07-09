@@ -16,7 +16,7 @@ set script-interpreter :=\
 
 #* Shell preamble
 inst_pre :=\
-  if os_family()=='windows' { _j + ';' } else { empty } \
+  if os_family()=='windows' { j + ';' } else { empty } \
   || 'set -o errexit -o nounset -o pipefail -o xtrace;'
 
 #* Messages
@@ -25,7 +25,7 @@ _installed :=\
 
 #* Installers
 _just_inst :=\
-  _uvx + sp + '--from' + sp + quote(\
+  uvx + sp + '--from' + sp + quote(\
     'rust-just' + \
     if just_version==empty { empty } else { '@' + just_version } \
   ) \
@@ -265,7 +265,7 @@ _wt_name :=\
 # ❌ Install Windows Terminal
 [linux, macos, group('❌ Install (N/A for this OS)')]
 wt:
-  @{{quote(GREEN+_wt_name+sp+_na+NORMAL)}}
+  @{{quote(GREEN+_wt_name+sp+na+NORMAL)}}
 
 # 🌐 Install Snap
 [script, linux, group('🌐 Install')]

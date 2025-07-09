@@ -18,22 +18,25 @@ set script-interpreter :=\
   ['pwsh', '-NonInteractive', '-NoProfile']
 
 #* Python packages
-_dev :=\
-  _uvr + sp + quote(env("PROJECT_NAME") + '-dev')
-_pipeline :=\
-  _uvr + sp + quote(env("PROJECT_NAME") + '-pipeline')
+dev :=\
+  uvr + sp + quote(env("PROJECT_NAME") + '-dev')
+pipeline :=\
+  uvr + sp + quote(env("PROJECT_NAME") + '-pipeline')
 
 #* ♾️ Self
 
 # 📃 [DEFAULT] List recipes
 [group('♾️  Self')]
 list:
-  {{_j}} --list
+  {{j}} --list
 alias l := list
 
+hello:
+  Get-Item Env:
+
 [group('♾️  Self')]
-evaluate:
-  {{_j}} --evaluate {{vars}}
+just *args:
+  {{j}} {{args}}
 
 #* ⛰️ Environments
 
@@ -103,7 +106,7 @@ ci *args: uv-sync
   if (!(Get-Content $Env:DEV_CI_ENV_FILE | Select-String -Pattern 'CI_ENV_SET')) {
       $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
   }
-  {{_dev}} elevate-pyright-warnings $Env:DEV_PYRIGHTCONFIG_FILE
+  {{dev}} elevate-pyright-warnings $Env:DEV_PYRIGHTCONFIG_FILE
   {{ if args!=empty { j + sp + args } else {empty} }}
 
 # 📦 Run recipes in devcontainer
@@ -128,33 +131,33 @@ base_envs :=\
 #* 🟣 uv
 
 #? uv invocations
-_uv_options :=\
+uv_options :=\
   '--all-packages' + sp + '--python' + sp + quote(python_version)
-_uvr :=\
-  _uv + sp + 'run' + sp + _uv_options
-_uvs :=\
-  _uv + sp + 'sync' + sp + _uv_options
+uvr :=\
+  uv + sp + 'run' + sp + uv_options
+uvs :=\
+  uv + sp + 'sync' + sp + uv_options
 
 # 🟣 uv ...
 [group('🟣 uv')]
 uv *args:
-  {{pre}} {{_uv}} {{args}}
+  {{pre}} {{uv}} {{args}}
 
 # 🏃 uv run ...
 [group('🟣 uv')]
 uv-run *args:
-  {{pre}} {{_uvr}} {{args}}
+  {{pre}} {{uvr}} {{args}}
 alias uvr := uv-run
 
 # 🏃 uvx ...
 [group('🟣 uv')]
 uvx *args:
-  {{pre}} {{_uv}} {{args}}
+  {{pre}} {{uv}} {{args}}
 
 # 🔃 uv sync ...
 [group('🟣 uv')]
 uv-sync *args:
-  {{pre}} {{_uvs}} {{args}}
+  {{pre}} {{uvs}} {{args}}
 alias uvs := uv-sync
 alias sync := uv-sync
 
@@ -163,60 +166,60 @@ alias sync := uv-sync
 # 🐍 python ...
 [group('🐍 Python')]
 py *args:
-  {{pre}} {{_uvr}} 'python' {{args}}
+  {{pre}} {{uvr}} 'python' {{args}}
 
 # 📦 uv run --module ...
 [group('🐍 Python')]
 py-module module *args:
-  {{pre}} {{_uvr}} '--module' {{quote(module)}} {{args}}
+  {{pre}} {{uvr}} '--module' {{quote(module)}} {{args}}
 alias pym := py-module
 
 # 🏃 uv run python -c '...'
 [group('🐍 Python')]
 py-command cmd:
-  {{pre}} {{_uvr}} 'python' '-c' {{quote(cmd)}}
+  {{pre}} {{uvr}} 'python' '-c' {{quote(cmd)}}
 alias pyc := py-command
 
 # 📄 uv run --script ...
 [group('🐍 Python')]
 py-script script *args:
-  {{pre}} {{_uvr}} '--script' {{quote(script)}} {{args}}
+  {{pre}} {{uvr}} '--script' {{quote(script)}} {{args}}
 alias pys := py-script
 
 # 📺 uv run --gui-script ...
 [windows, group('🐍 Python')]
 py-gui script *args:
-  {{pre}} {{_uvr}} '--gui-script' {{quote(script)}} {{args}}
+  {{pre}} {{uvr}} '--gui-script' {{quote(script)}} {{args}}
 alias pyg := py-gui
 # ❌ uv run --gui-script ...
 [linux, macos, group('❌ Python (N/A for this OS)')]
 py-gui:
-  @{{quote(GREEN+'GUI scripts'+sp+_na+NORMAL)}}
+  @{{quote(GREEN+'GUI scripts'+sp+na+NORMAL)}}
 
 #* ⚙️ Tools
 
 # 🧪 pytest ...
 [group('⚙️  Tools')]
 tool-pytest *args:
-  {{pre}} {{_uvr}} pytest {{args}}
+  {{pre}} {{uvr}} pytest {{args}}
 alias pytest := tool-pytest
 
 # 📖 preview docs
 [group('⚙️  Tools')]
 tool-docs-preview:
-  {{pre}} {{_uvr}} sphinx-autobuild --show-traceback docs _site \
+  {{pre}} {{uvr}} sphinx-autobuild --show-traceback docs _site \
     {{ prepend( '--ignore', "'**/temp' '**/data' '**/apidocs' '**/*schema.json'" ) }}
 alias docs := tool-docs-preview
 
 # 📖 build docs
 [group('⚙️  Tools')]
 tool-docs-build:
-  {{pre}} {{_uvr}} sphinx-build -EaT 'docs' '_site'
+  {{pre}} {{uvr}} sphinx-build -EaT 'docs' '_site'
 
 # 🔵 pre-commit run ...
 [group('⚙️  Tools')]
 tool-pre-commit *args: con
-  {{pre}} {{_uvr}} pre-commit run --verbose {{args}}
+  {{pre}} {{uvr}} pre-commit run --verbose {{args}}
 alias pre-commit := tool-pre-commit
 
 # 🔵 pre-commit run --all-files ...
@@ -235,19 +238,19 @@ tool-check-clean:
 # ✔️  fawltydeps ...
 [group('⚙️  Tools')]
 tool-fawltydeps *args:
-  {{pre}} {{_uvr}} fawltydeps {{args}}
+  {{pre}} {{uvr}} fawltydeps {{args}}
 alias fawltydeps := tool-fawltydeps
 
 # ✔️  pyright
 [group('⚙️  Tools')]
 tool-pyright:
-  {{pre}} {{_uvr}} pyright
+  {{pre}} {{uvr}} pyright
 alias pyright := tool-pyright
 
 # ✔️  ruff check ... '.'
 [group('⚙️  Tools')]
 tool-ruff *args:
-  {{pre}} {{_uvr}} ruff check {{args}} .
+  {{pre}} {{uvr}} ruff check {{args}} .
 alias ruff := tool-ruff
 
 #* 📦 Packaging
@@ -255,15 +258,15 @@ alias ruff := tool-ruff
 # 🛞  Build wheel, compile binary, and sign...
 [group('📦 Packaging')]
 pkg-build *args:
-  {{pre}} {{_uvr}} {{env("PROJECT_NAME")}} {{args}}
+  {{pre}} {{uvr}} {{env("PROJECT_NAME")}} {{args}}
 alias build := pkg-build
 
 # 📜 Build changelog for new version
 [group('📦 Packaging')]
 pkg-build-changelog version:
-  {{pre}} {{_templ-sync}} --data 'env("PROJECT_VERSION")={{version}}'
-  {{pre}} {{_uvr}} towncrier build --yes --version '{{version}}'
-  {{pre}} {{_post_template_task}}
+  {{pre}} {{templ-sync}} --data 'env("PROJECT_VERSION")={{version}}'
+  {{pre}} {{uvr}} towncrier build --yes --version '{{version}}'
+  {{pre}} {{post_template_task}}
   -{{pre}} try { git stage 'changelog/*.md' } catch {}
   @{{quote(YELLOW+'Changelog draft built. Please finalize it, then run `./j.ps1 pkg-release`.'+NORMAL)}}
 
@@ -294,7 +297,7 @@ con-pre-commit-hooks:
       Test-Path \
     ) -Contains $False \
   ) { \
-    {{_uvr}} pre-commit install --install-hooks | Out-Null; \
+    {{uvr}} pre-commit install --install-hooks | Out-Null; \
     {{quote(GREEN + 'Pre-commit hooks installed.' + NORMAL)}} \
   }
 hooks :=\
@@ -303,30 +306,30 @@ hooks :=\
 # 👥 Normalize line endings
 [group('👥 Contributor environment setup')]
 con-norm-line-endings:
-  -{{pre}} try { {{_uvr}} pre-commit run mixed-line-ending --all-files | Out-Null } catch {}
+  -{{pre}} try { {{uvr}} pre-commit run mixed-line-ending --all-files | Out-Null } catch {}
 
 # 👥 Run dev task...
 [group('👥 Contributor environment setup')]
 con-dev *args:
-  {{pre}} {{_dev}} {{args}}
+  {{pre}} {{dev}} {{args}}
 alias dev := con-dev
 alias d := con-dev
 
 # 👥 Run pipeline stage...
 [group('👥 Contributor environment setup')]
 con-pipeline *args:
-  {{pre}} {{_pipeline}} {{args}}
+  {{pre}} {{pipeline}} {{args}}
 alias pipeline := con-pipeline
 
 # 👥 Update changelog...
 [group('👥 Contributor environment setup')]
 con-update-changelog change_type:
- {{pre}} {{_dev}} add-change {{change_type}}
+ {{pre}} {{dev}} add-change {{change_type}}
 
 # 👥 Update changelog with the latest commit's message
 [group('👥 Contributor environment setup')]
 con-update-changelog-latest-commit:
-  {{pre}} {{_uvr}} towncrier create \
+  {{pre}} {{uvr}} towncrier create \
     "+$((Get-Date).ToUniversalTime().ToString('o').Replace(':','-')).change.md" \
     --content ( \
       "$(git log -1 --format='%s') ([$(git rev-parse --short HEAD)]" \
@@ -353,59 +356,59 @@ ci-out-latest-release:
 # ⬆️  Update from template
 [group('🧩 Templating')]
 templ-update:
-  {{pre}} {{_update_template}} --defaults
-  {{pre}} {{_post_template_task}}
+  {{pre}} {{update_template}} --defaults
+  {{pre}} {{post_template_task}}
 
 # ⬆️  Update from template (prompt)
 [group('🧩 Templating')]
 templ-update-prompt:
-  {{pre}} {{_update_template}}
-  {{pre}} {{_post_template_task}}
+  {{pre}} {{update_template}}
+  {{pre}} {{post_template_task}}
 
 # 🔃 Sync with current template
 [group('🧩 Templating')]
 templ-sync:
-  {{pre}} {{_templ-sync}}
-  {{pre}} {{_post_template_task}}
-_templ-sync :=\
-  _sync_template + sp + '--defaults'
+  {{pre}} {{templ-sync}}
+  {{pre}} {{post_template_task}}
+templ-sync :=\
+  sync_template + sp + '--defaults'
 
 # 🔃 Sync with current template (prompt)
 [group('🧩 Templating')]
 templ-sync-prompt:
-  {{pre}} {{_sync_template}}
-  {{pre}} {{_post_template_task}}
+  {{pre}} {{sync_template}}
+  {{pre}} {{post_template_task}}
 
 # ➡️  Recopy current template
 [group('🧩 Templating')]
 templ-recopy:
-  {{pre}} {{_recopy_template}} --defaults
-  {{pre}} {{_post_template_task}}
+  {{pre}} {{recopy_template}} --defaults
+  {{pre}} {{post_template_task}}
 
 # ➡️  Recopy current template (prompt)
 [group('🧩 Templating')]
 templ-recopy-prompt:
-  {{pre}} {{_recopy_template}}
-  {{pre}} {{_post_template_task}}
+  {{pre}} {{recopy_template}}
+  {{pre}} {{post_template_task}}
 
-_update_template :=\
-  _copier_update + sp + _latest_template
-_sync_template :=\
-  _copier_update + sp + _current_template
-_recopy_template :=\
-  _copier_recopy + sp + _current_template
-_post_template_task :=\
+update_template :=\
+  copier_update + sp + latest_template
+sync_template :=\
+  copier_update + sp + current_template
+recopy_template :=\
+  copier_recopy + sp + current_template
+post_template_task :=\
   'git add --all; git reset;' + sp + j + sp + 'con'
-_latest_template :=\
+latest_template :=\
   quote('--vcs-ref=HEAD')
-_current_template :=\
+current_template :=\
   quote('--vcs-ref=' + env("TEMPLATE_COMMIT"))
-_copier_recopy :=\
-  _copier + sp + 'recopy'
-_copier_update :=\
-  _copier + sp + 'update'
-_copier :=\
-  _uvx + sp + quote('copier@' + env("COPIER_VERSION"))
+copier_recopy :=\
+  copier + sp + 'recopy'
+copier_update :=\
+  copier + sp + 'update'
+copier :=\
+  uvx + sp + quote('copier@' + env("COPIER_VERSION"))
 
 #* 🛠️ Repository setup
 
@@ -461,4 +464,4 @@ setup-scripts:
 # ❌ Allow running local PowerShell scripts
 [linux, macos, group('❌ Machine setup (N/A for this OS)')]
 setup-scripts:
-  @{{quote(GREEN+'Allowing local PowerShell scripts to run'+sp+_na+NORMAL)}}
+  @{{quote(GREEN+'Allowing local PowerShell scripts to run'+sp+na+NORMAL)}}
