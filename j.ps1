@@ -10,8 +10,10 @@ $PSNativeCommandUseErrorActionPreference = $True
 $ErrorView = 'NormalView'
 $OutputEncoding = [console]::InputEncoding = [console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-#* MARK: Invokes Just, called at the bottom of this file
+#* MARK: Called at the bottom of this file
 function Invoke-Just {
+    <#.SYNOPSIS
+    Invoke Just.#>
     #? Capture variables set by command line
     $Vars = @{}
     if ($RemainingArgs) {
@@ -24,25 +26,28 @@ function Invoke-Just {
         }
     }
     $Vars = $Vars | Format-Env
+
     #? Sync environment variables necessary for bootstrapping
     $Uvx = $Env:CI ? 'uvx' : './uvx'
     $Environ = Merge-Envs -Upper ((Get-Env 'base'), $Vars)
-    $RawCI = ($Environ['ci'] ? $Environ['ci'] : $Env:CI)
-    $CI = ($null -ne $RawCI) -and ($RawCI -ne 0)
     $Just = @('--from', "rust-just@$($Environ['JUST_VERSION'])", 'just')
+
     #? Just sync CLI vars line if calling recursively from inside a recipe
     if ($Env:JUST) { $Vars | Sync-Env }
     else {
+        $RawCI = ($Environ['ci'] ? $Environ['ci'] : $Env:CI)
+        $CI = ($null -ne $RawCI) -and ($RawCI -ne 0)
         #? Otherwise sync the full environment
         $Environ = Merge-Envs ($Environ, (Get-Env ($CI ? 'ci' : 'contrib')))
         $Environ | Sync-Env
-        if (!$CI) { Sync-Uv $Environ['UV_VERSION'] }
-        #? Install YAML parser in CI if missing
+        #? Install YAML parser in CI if missing, sync uv in contrib environment
         if ($CI) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
+        else { Sync-Uv $Environ['UV_VERSION'] }
         #? Parse template answers YAML data, merge into environment, and sync
         Merge-Envs -Upper ((Get-Env 'answers'), $Environ) | Sync-Env
     }
     $Env:JUST = '1'
+
     #? Invoke Just if arguments passed, otherwise can dot-source in recipes w/o recurse
     try { if ($RemainingArgs) { & $Uvx @Just @RemainingArgs } }
     finally { $Env:JUST = $null }

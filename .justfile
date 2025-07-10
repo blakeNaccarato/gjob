@@ -72,7 +72,7 @@ _add-venv-tools-to-ci path:
 [script, group('⛰️ Environments')]
 _write-env-to-ci-env path:
   {{script_pre}}
-  $CiEnv = (Merge-Envs -Upper (('answers', 'base', 'ci') | Get-Env))
+  $CiEnv = (Merge-Envs -Upper (('base', 'ci') | Get-Env))
   $CiEnvText = ''
   $CiEnv['CI_ENV_SET'] = '1'
   $CiEnv.GetEnumerator() | ForEach-Object { $CiEnvText += "$($_.Name)=$($_.Value)`n" }
@@ -99,7 +99,7 @@ _write-env-to-ci-env path:
 [script, group('⛰️ Environments')]
 _sync_settings_json:
   {{script_pre}}
-  $Environ = Merge-Envs -Upper (('answers', 'base') | Get-Env)
+  $Environ = Merge-Envs -Upper (('base', 'contrib') | Get-Env)
   $JsonEnviron = $Environ | ConvertTo-Json -Compress
   $Settings = '.vscode/settings.json'
   $SettingsContent = Get-Content $Settings -Raw
