@@ -3,14 +3,54 @@ Run Just recipes.#>
 [CmdletBinding()]
 param([Parameter(ValueFromRemainingArguments)][string[]]$RemainingArgs)
 
-#! Common config sourced by all Just recipes
+#* MARK: Config sourced by recipes
 Set-StrictMode -Version '3.0'
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $True
 $ErrorView = 'NormalView'
 $OutputEncoding = [console]::InputEncoding = [console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-#! Common functions used below and sourced by all Just recipes
+#* MARK: Invokes Just, called at the bottom of this file
+function Invoke-Just {
+    #? Capture variables set by command line
+    $Vars = @{}
+    if ($RemainingArgs) {
+        $Idx = 0
+        for ($Idx = 0; $Idx -lt $RemainingArgs.Count; $Idx++) {
+            if ($RemainingArgs[$Idx] -ne '--set') { continue }
+            if (($Idx + 2) -ge $RemainingArgs.Count) { break }
+            $Vars[$RemainingArgs[$Idx + 1]] = $RemainingArgs[$Idx + 2]
+            $Idx += 2
+        }
+    }
+    $Vars = $Vars | Format-Env
+    #? Sync environment variables necessary for bootstrapping
+    $Uvx = $Env:CI ? 'uvx' : './uvx'
+    $Environ = Merge-Envs -Upper ((Get-Env 'base'), $Vars)
+    $RawCI = ($Environ['ci'] ? $Environ['ci'] : $Env:CI)
+    $CI = ($null -ne $RawCI) -and ($RawCI -ne 0)
+    $Just = @('--from', "rust-just@$($Environ['JUST_VERSION'])", 'just')
+    #? Just sync CLI vars line if calling recursively from inside a recipe
+    if ($Env:JUST) { $Vars | Sync-Env }
+    else {
+        #? Otherwise sync the full environment
+        if ($CI) { $Environ = (Merge-Envs ($Environ, (Get-Env 'ci'))) }
+        $Environ | Sync-Env
+        if (!$CI) { Sync-Uv $Environ['UV_VERSION'] }
+        #? Install YAML parser in CI if missing
+        if ($CI) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
+        #? Parse template answers YAML data, merge into environment, and sync
+        Merge-Envs -Upper ((Get-Env 'answers'), $Environ) | Sync-Env
+        if ($CI) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
+    }
+    $Env:JUST = '1'
+    #? Invoke Just if arguments passed, otherwise can dot-source in recipes w/o recurse
+    try { if ($RemainingArgs) { & $Uvx @Just @RemainingArgs } }
+    finally { $Env:JUST = $null }
+}
+
+#* MARK: Functions used above and sourced by recipes
+
 function Sync-Uv {
     <#.SYNOPSIS
     Sync uv version.#>
@@ -26,6 +66,7 @@ function Sync-Uv {
     }
     curl -LsSf "https://astral.sh/uv/$Version/install.sh" | sh
 }
+
 function Sync-Env {
     <#.SYNOPSIS
     Sync environment variables.#>
@@ -36,6 +77,7 @@ function Sync-Env {
         }
     }
 }
+
 function Limit-Env {
     <#.SYNOPSIS
     Limit environment to specific variables.#>
@@ -53,6 +95,7 @@ function Limit-Env {
     }
     return Format-Env $Limited
 }
+
 function Merge-Envs {
     <#.SYNOPSIS
     Merge environment variables.#>
@@ -67,6 +110,7 @@ function Merge-Envs {
     }
     return Format-Env $Merged
 }
+
 function Get-Env {
     <#.SYNOPSIS
     Get environment variables.#>
@@ -102,6 +146,7 @@ function Get-Env {
         return Format-Env $Environ
     }
 }
+
 function Format-Env {
     <#.SYNOPSIS
     Sort environment variables by name.#>
@@ -112,6 +157,7 @@ function Format-Env {
     }
     return $Sorted
 }
+
 function Get-EnvVar {
     <#.SYNOPSIS
     Get value of environment variable.#>
@@ -122,6 +168,7 @@ function Get-EnvVar {
         return $Var | Select-Object -ExpandProperty 'Value'
     }
 }
+
 function Set-Case {
     <#.SYNOPSIS
     Set case of a string to upper or lower.#>
@@ -137,35 +184,5 @@ function Set-Case {
     }
 }
 
-#! Populate supplied variables
-$Vars = @{}
-if ($RemainingArgs) {
-    $Idx = 0
-    for ($Idx = 0; $Idx -lt $RemainingArgs.Count; $Idx++) {
-        if ($RemainingArgs[$Idx] -ne '--set') { continue }
-        if (($Idx + 2) -ge $RemainingArgs.Count) { break }
-        $Vars[$RemainingArgs[$Idx + 1]] = $RemainingArgs[$Idx + 2]
-        $Idx += 2
-    }
-}
-
-#! Get basic environment variables to bootstrap uv
-$Uvx = $Env:CI ? 'uvx' : './uvx'
-$Environ = Get-Env 'base'
-$Just = @('--from', "rust-just@$($Environ['JUST_VERSION'])", 'just')
-$CI = ($Vars['ci'] ? $Vars['ci'] : $Env:CI)
-if (($null -ne $CI) -and ($CI -ne 0)) {
-    (Limit-Env $Environ ('JUST_VERSION', 'POWERSHELL_YAML_VERSION')) | Sync-Env
-    if (!$Env:JUST) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
-}
-else { Sync-Uv $Environ['UV_VERSION'] }
-
-#! Invoke Just if arguments were passed. Can dot-source (e.g. in recipes) with no args
-if (!($Env:JUST)) {
-    Merge-Envs -Upper ((Get-Env 'answers'), $Environ, (Format-Env $Vars)) | Sync-Env
-}
-try {
-    $Env:JUST = '1'
-    if ($RemainingArgs) { & $Uvx @Just @RemainingArgs }
-}
-finally { $Env:JUST = $null }
+#* MARK: Invoke Just
+Invoke-Just
