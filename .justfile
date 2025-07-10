@@ -140,9 +140,9 @@ _sync_settings_json:
 [script, group('⛰️ Environments')]
 _sync_env_yml:
   {{script_pre}}
-  $Environ = Merge-Envs -Upper ('answers', 'base')
+  $Environ = Merge-Envs -Lower ('answers', 'base')
   $LimitedEnviron = [ordered]@{}
-  (Limit-Env -Lower $Environ '{{ci_variables}}'.Split()).GetEnumerator() |
+  (Limit-Env $Environ '{{ci_variables}}'.Split()).GetEnumerator() |
     ForEach-Object { $LimitedEnviron[$_.Name] = @{ value = $_.Value } }
   $Workflow = '.github/workflows/env.yml'
   $WorkflowData = Get-Content $Workflow | ConvertFrom-Yaml -Ordered
