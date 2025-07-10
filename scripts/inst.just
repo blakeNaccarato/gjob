@@ -20,11 +20,11 @@ inst_pre :=\
   || 'set -o errexit -o nounset -o pipefail -o xtrace;'
 
 #* Messages
-_installed :=\
+installed :=\
   'already installed.'
 
 #* Installers
-_just_inst :=\
+just_inst :=\
   uvx + sp + '--from' + sp + quote(\
     'rust-just' + \
     if just_version==empty { empty } else { '@' + just_version } \
@@ -48,7 +48,7 @@ mac_inst :=\
 mac_inst_cask :=\
   mac_inst + '--cask' + sp
 linux_inst :=\
-  _linux_pre + pkg_bin + sp \
+  linux_pre + pkg_bin + sp \
   + ( \
     if which('apt')!=empty { 'update' } else { empty } \
     || if which('dnf')!=empty { 'makecache' } else { empty } \
@@ -57,10 +57,10 @@ linux_inst :=\
   + ';' + sp \
   + sudo + pkg_bin + sp + 'install -y' + sp
 linux_inst_snap :=\
-  _linux_pre + snap_bin + sp + 'install' + sp
+  linux_pre + snap_bin + sp + 'install' + sp
 end_snap :=\
   sp + '--classic'
-_linux_pre :=\
+linux_pre :=\
   inst_pre + sp + sudo
 
 #* Linux package managers
@@ -82,12 +82,12 @@ all: code git gh pwsh powershell-yaml wt
 # 🌐 Install VSCode
 [group('🌐 Install')]
 code:
-  @{{ if code_found==true { _code_found_msg } else { empty } }}
+  @{{ if code_found==true { code_found_msg } else { empty } }}
   {{ if code_found==false { inst_code } else { empty } }}
 code_found :=\
   if code_bin!=null { true } else { false }
 inst_code :=\
-  _just_inst + 'brew snap;' + sp \
+  just_inst + 'brew snap;' + sp \
   + ( \
     if os_family()=='windows' { win_inst + quote('Microsoft.VisualStudioCode') } else { empty } \
     || if os()=='macos' { mac_inst_cask + quote('visual-studio-code') } else { empty } \
@@ -95,20 +95,20 @@ inst_code :=\
   )
 code_bin :=\
   which('code' + bin_ext) || which('code' + cmd_ext) || null
-_code_found_msg :=\
-  quote(GREEN+_code_name+sp+_installed+NORMAL)
-_code_name :=\
+code_found_msg :=\
+  quote(GREEN+code_name+sp+installed+NORMAL)
+code_name :=\
   'VSCode'
 
 # 🌐 Install GitHub CLI
 [group('🌐 Install')]
 gh:
-  @{{ if gh_found==true { _gh_found_msg } else { empty } }}
+  @{{ if gh_found==true { gh_found_msg } else { empty } }}
   {{ if gh_found==false { inst_gh } else { empty } }}
 gh_found :=\
   if gh_bin!=null { true } else { false }
 inst_gh :=\
-  _just_inst + 'brew;' + sp \
+  just_inst + 'brew;' + sp \
   + ( \
     if os_family()=='windows' { win_inst + quote('GitHub.cli') } else { empty } \
     || if os()=='macos' { mac_inst + 'gh' } else { empty } \
@@ -116,20 +116,20 @@ inst_gh :=\
   )
 gh_bin :=\
   which('gh' + bin_ext) || null
-_gh_found_msg :=\
-  quote(GREEN+_gh_name+sp+_installed+NORMAL)
-_gh_name :=\
+gh_found_msg :=\
+  quote(GREEN+gh_name+sp+installed+NORMAL)
+gh_name :=\
   'GitHub CLI'
 
 # 🌐 Install Git
 [group('🌐 Install')]
 git:
-  @{{ if git_found==true {_git_found_msg} else { empty } }}
+  @{{ if git_found==true {git_found_msg} else { empty } }}
   {{ if git_found==false {inst_git} else { empty } }}
 git_found :=\
   if git_bin!=null { true } else { false }
 inst_git :=\
-  _just_inst + 'brew;' + sp \
+  just_inst + 'brew;' + sp \
   + ( \
     if os_family()=='windows' { inst_pre + sp + inst_git_win } else { empty } \
     || if os()=='macos' { mac_inst + quote('git') } else { empty } \
@@ -138,12 +138,12 @@ inst_git :=\
 git_bin :=\
   which('git' + bin_ext) || null
 inst_git_win :=\
-  win_inst + quote('Git.Git') + sp + '--override' + _inst_git_win_overrides
+  win_inst + quote('Git.Git') + sp + '--override' + inst_git_win_overrides
 #? Use Git install flags from Git for Windows repo.
 #? See: https://github.com/git-for-windows/git-for-windows-automation/blob/67701cdda450b18fc4d410747f60aaa37167afe2/azure-self-hosted-runners/post-deployment-script.ps1#L189
 #? Can't use New-TemporaryFile.
 #? See: https://github.com/PowerShell/PowerShell/issues/14100
-_inst_git_win_overrides :=\
+inst_git_win_overrides :=\
   sp \
   + dquote \
   + sp + '/CLOSEAPPLICATIONS' \
@@ -152,10 +152,10 @@ _inst_git_win_overrides :=\
   + sp + '/RESTARTAPPLICATIONS' \
   + sp + '/SP-' \
   + sp + '/VERYSILENT' \
-  + sp + '/LOADINF=$(' + _inst_git_win_inf + ')' \
+  + sp + '/LOADINF=$(' + inst_git_win_inf + ')' \
   + dquote
 #? Modern defaults for Git installation. Must be supplied through LOADINF interface.
-_inst_git_win_inf :=\
+inst_git_win_inf :=\
 '''@'
 [Setup]
 Components=gitlfs,windowsterminal,scalar
@@ -169,20 +169,20 @@ BashTerminalOption=ConHost
   Set-Content ( $Path = [System.IO.Path]::GetTempFilename() )
 $Path
 '''
-_git_found_msg :=\
-  quote(GREEN+_git_name+sp+_installed+NORMAL)
-_git_name :=\
+git_found_msg :=\
+  quote(GREEN+git_name+sp+installed+NORMAL)
+git_name :=\
   'Git'
 
 # 🌐 Install cross-platform PowerShell, the shell used for all non-install recipes
 [group('🌐 Install')]
 pwsh:
-  @{{ if pwsh_found==true { _pwsh_found_msg } else { empty } }}
+  @{{ if pwsh_found==true { pwsh_found_msg } else { empty } }}
   {{ if pwsh_found==false { inst_pwsh } else { empty } }}
 pwsh_found :=\
   if pwsh_bin!=null { true } else { false }
 inst_pwsh :=\
-  _just_inst + 'brew snap;' + sp \
+  just_inst + 'brew snap;' + sp \
   + ( \
     if os_family()=='windows' { win_inst + quote('Microsoft.PowerShell') } else { empty } \
     || if os()=='macos' { mac_inst + quote('powershell/tap/powershell') } else { empty } \
@@ -190,16 +190,16 @@ inst_pwsh :=\
   )
 pwsh_bin :=\
   which('pwsh' + bin_ext) || null
-_pwsh_found_msg :=\
-  quote(GREEN+_pwsh_name+sp+_installed+NORMAL)
-_pwsh_name :=\
+pwsh_found_msg :=\
+  quote(GREEN+pwsh_name+sp+installed+NORMAL)
+pwsh_name :=\
   'Cross-platform PowerShell (pwsh)'
 
 # 🌐 Install YAML utilities for cross-platform PowerShell
 [group('🌐 Install')]
 powershell-yaml:
-  pwsh -Command '{{_inst_powershell_yaml}}'
-_inst_powershell_yaml :=\
+  pwsh -Command '{{inst_powershell_yaml}}'
+inst_powershell_yaml :=\
   "if (!(Get-InstalledModule -ErrorAction 'Ignore' 'powershell-yaml')) {" \
     + sp + '$InstallationPolicy = Get-PSRepository' + sp + quote('PSGallery') + sp + '|' \
     + sp + 'Select-Object -ExpandProperty' + sp + quote('InstallationPolicy') + ';' \
@@ -219,38 +219,11 @@ _inst_powershell_yaml :=\
     }
 powershell_yaml_version :=\
   env('POWERSHELL_YAML_VERSION', empty)
-# 🌐 Install a project version of uv if you've got global uv
-[group('🌐 Install')]
-uv:
-  @{{ if uv_found==true { _uv_found_msg } else { empty } }}
-  {{ if uv_found==false { inst_uv } else { empty } }}
-inst_uv :=\
-  if os_family()=='windows' { inst_uv_win } else { empty } \
-  || inst_uv_unix
-uv_found :=\
-  if uv_bin!=null { true } else { false }
-uv_bin :=\
-  if path_exists('./uv' + bin_ext)==true { './uv' + bin_ext } else { empty } \
-  || null
-_uv_bin :=\
-  './uv' + bin_ext
-inst_uv_win :=\
-  inst_pre + sp + 'Invoke-RestMethod' + sp + _inst_uv_script + sp + '| Invoke-Expression'
-inst_uv_unix :=\
-  inst_pre + sp + "curl --proto '=https' --tlsv1.2 -LsSf" + sp + _inst_uv_script
-_inst_uv_script :=\
-  quote('https://astral.sh/uv/' + uv_version + '/install' + sh_ext)
-uv_version :=\
-  env('UV_VERSION', empty)
-_uv_found_msg :=\
-  quote(GREEN+_uv_name+sp+_installed+NORMAL)
-_uv_name :=\
-  'uv'
 
 # 🌐 Install Windows Terminal
 [windows, group('🌐 Install')]
 wt:
-  @{{ if wt_found==true { _wt_found_msg } else { empty } }}
+  @{{ if wt_found==true { wt_found_msg } else { empty } }}
   {{ if wt_found==false { inst_wt } else { empty } }}
 wt_found :=\
   if wt_bin!=null { true } else { false }
@@ -258,14 +231,14 @@ inst_wt :=\
   win_inst + quote('Microsoft.WindowsTerminal')
 wt_bin :=\
   which('wt.exe') || null
-_wt_found_msg :=\
-  quote(GREEN+_wt_name+sp+_installed+NORMAL)
-_wt_name :=\
+wt_found_msg :=\
+  quote(GREEN+wt_name+sp+installed+NORMAL)
+wt_name :=\
   'Windows Terminal'
 # ❌ Install Windows Terminal
 [linux, macos, group('❌ Install (N/A for this OS)')]
 wt:
-  @{{quote(GREEN+_wt_name+sp+na+NORMAL)}}
+  @{{quote(GREEN+wt_name+sp+na+NORMAL)}}
 
 # 🌐 Install Snap
 [script, linux, group('🌐 Install')]
@@ -297,7 +270,7 @@ wt:
     sudo systemctl enable --now 'snapd.socket'
     sudo ln -s '/var/lib/snapd/snap' '/snap'
 check_snap :=\
-  if snap_bin!=null { 'return ' + quote(GREEN+snap_name+sp+_installed+NORMAL) } else { empty }
+  if snap_bin!=null { 'return ' + quote(GREEN+snap_name+sp+installed+NORMAL) } else { empty }
 wsl_conf_extra :=\
 '''EOF
 [boot]
@@ -307,7 +280,7 @@ wsl_snap_warn :=\
   quote( \
     YELLOW \
     + 'Enabled systemd in WSL. Run `wsl --shutdown` in host, restart WSL, then re-run this recipe.' \
-    + _installed+sp+NORMAL \
+    + installed+sp+NORMAL \
   )
 snap_bin :=\
   which('snap') \
@@ -316,16 +289,16 @@ snap_bin :=\
 # ❌ Install Snap
 [windows, macos, group('❌ Install (N/A for this OS)')]
 snap:
-  @{{_snap_found_msg}}
-_snap_found_msg :=\
-  quote(GREEN+_brew_name+sp+_installed+NORMAL)
+  @{{snap_found_msg}}
+snap_found_msg :=\
+  quote(GREEN+brew_name+sp+installed+NORMAL)
 snap_name :=\
   'Snap'
 
 # 🌐 Install Homebrew
 [macos, group('🌐 Install')]
 brew:
-  @{{ if brew_found==true {_brew_found_msg} else { empty } }}
+  @{{ if brew_found==true {brew_found_msg} else { empty } }}
   {{ if brew_found==false {inst_brew} else { empty } }}
 brew_found :=\
   if brew_bin!=null { true } else { false }
@@ -339,8 +312,8 @@ brew_bin :=\
 # ❌ Install Homebrew
 [windows, linux, group('❌ Install (N/A for this OS)')]
 brew:
-  @{{_brew_found_msg}}
-_brew_found_msg :=\
-  quote(GREEN+_brew_name+sp+_installed+NORMAL)
-_brew_name :=\
+  @{{brew_found_msg}}
+brew_found_msg :=\
+  quote(GREEN+brew_name+sp+installed+NORMAL)
+brew_name :=\
   'Homebrew'
