@@ -14,16 +14,17 @@ $OutputEncoding = [console]::InputEncoding = [console]::OutputEncoding = [System
 function Sync-Uv {
     <#.SYNOPSIS
     Sync uv version.#>
+    param([Parameter(Mandatory, ValueFromPipeline)][string]$Version)
     if (Get-Command './uv' -ErrorAction 'Ignore') {
         (./uv --color 'never' self version) -match 'uv ([\d.]+)' | Out-Null
-        if ($Matches[1] -eq $Env:UV_VERSION) { return }
+        if ($Matches[1] -eq $Version) { return }
     }
     if ($IsWindows) {
-        $InstallUv = "Invoke-RestMethod https://astral.sh/uv/$Env:UV_VERSION/install.ps1 | Invoke-Expression"
+        $InstallUv = "Invoke-RestMethod https://astral.sh/uv/$Version/install.ps1 | Invoke-Expression"
         powershell -ExecutionPolicy 'ByPass' -Command $InstallUv
         return
     }
-    curl -LsSf "https://astral.sh/uv/$Env:UV_VERSION/install.sh" | sh
+    curl -LsSf "https://astral.sh/uv/$Version/install.sh" | sh
 }
 function Sync-Env {
     <#.SYNOPSIS
@@ -50,21 +51,21 @@ function Limit-Env {
             $Limited[($_.Name | Set-Case -Lower:$Lower -Upper:$Upper)] = $_.Value
         }
     }
-    return Sort-Env $Limited
+    return Format-Env $Limited
 }
 function Merge-Envs {
     <#.SYNOPSIS
     Merge environment variables.#>
     param(
-        [Parameter(Mandatory)][string[]]$Envs,
+        [Parameter(Mandatory, ValueFromPipeline)][hashtable[]]$Envs,
         [switch]$Lower,
         [switch]$Upper
     )
     $Merged = [ordered]@{}
-    $Envs | Get-Env | ForEach-Object { $_.GetEnumerator() } | ForEach-Object {
+    $Envs | ForEach-Object { $_.GetEnumerator() } | ForEach-Object {
         $Merged[($_.Name | Set-Case -Lower:$Lower -Upper:$Upper)] = $_.Value
     }
-    return Sort-Env $Merged
+    return Format-Env $Merged
 }
 function Get-Env {
     <#.SYNOPSIS
@@ -96,10 +97,10 @@ function Get-Env {
             if ($Value -match '^Env:.+$') { $Value = ($EnvVar = Get-EnvVar $Value) ? $EnvVar : '' }
             if ($Value -ne '') { $Environ[$Name] = $Value }
         }
-        return Sort-Env $Environ
+        return Format-Env $Environ
     }
 }
-function Sort-Env {
+function Format-Env {
     <#.SYNOPSIS
     Sort environment variables by name.#>
     param([Parameter(Mandatory, ValueFromPipeline)][hashtable]$Environ)
@@ -139,50 +140,27 @@ $Vars = @{}
 if ($RemainingArgs) {
     $Idx = 0
     for ($Idx = 0; $Idx -lt $RemainingArgs.Count; $Idx++) {
-        if (
-            ($RemainingArgs[$Idx] -eq '--set') -and
-            (($Idx + 2) -lt $RemainingArgs.Count)
-        ) {
-            $Vars[$RemainingArgs[$Idx + 1]] = $RemainingArgs[$Idx + 2]
-            $Idx += 2
-            continue
-        }
-        else { break }
-    }
-    if (
-        ($Idx -lt $RemainingArgs.Count) -and
-        ($RemainingArgs[($Idx - 1)..($RemainingArgs.Count - 1)] -contains '--set')
-    ) {
-        throw "All variable setting done with `--set key val` must occur first"
+        if ($RemainingArgs[$Idx] -ne '--set') { continue }
+        if (($Idx + 2) -ge $RemainingArgs.Count) { break }
+        $Vars[$RemainingArgs[$Idx + 1]] = $RemainingArgs[$Idx + 2]
+        $Idx += 2
     }
 }
 
-#! Sync basic environment variables and bootstrap uv
+#! Get basic environment variables to bootstrap uv
 $Uvx = $Env:CI ? 'uvx' : './uvx'
-Get-Env 'base' | Sync-Env
-$Just = @('--from', "rust-just@$Env:JUST_VERSION", 'just')
+$Environ = Get-Env 'base'
+$Just = @('--from', "rust-just@$($Environ['JUST_VERSION'])", 'just')
 $CI = ($Vars['ci'] ? $Vars['ci'] : $Env:CI)
 if (($null -ne $CI) -and ($CI -ne 0)) {
     if (!$Env:JUST) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
 }
-else { Sync-Uv }
-Merge-Envs ('answers', 'base') | Sync-Env
-
-#! Populate missing variables
-$MissingVars = @()
-('ci', 'python_version') | ForEach-Object {
-    if (($Value = $Vars[$_])) {
-        Set-Item "Env:$($_.ToUpper())" $Value
-    }
-    else {
-        $EnvVar = Get-EnvVar "Env:$($_.ToUpper())"
-        $MissingVars += ('--set', $_, ($EnvVar ? $EnvVar : ''''''))
-    }
-}
+else { Sync-Uv $Environ['UV_VERSION'] }
 
 #! Invoke Just if arguments were passed. Can dot-source (e.g. in recipes) with no args
-$UvxArgs = $Just + $MissingVars + $RemainingArgs
-if (($RemainingArgs) -or (!$Env:JUST)) {
+if (!($Env:JUST)) {
+    Merge-Envs -Upper ((Get-Env 'answers'), $Environ, (Format-Env $Vars)) | Sync-Env
     $Env:JUST = '1'
-    & $Uvx $UvxArgs
 }
+if ($RemainingArgs) { & $Uvx @Just @RemainingArgs }
+$Env:JUST = $null

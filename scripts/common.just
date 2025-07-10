@@ -1,8 +1,8 @@
 #* Variables
 ci :=\
-  empty
+  env('CI', empty)
 python_version :=\
-  empty
+  env('PYTHON_VERSION', empty)
 
 #* Binaries
 uv :=\

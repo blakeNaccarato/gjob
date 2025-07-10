@@ -1,5 +1,4 @@
 #* Settings
-set dotenv-load
 set unstable
 
 #* Imports
@@ -29,10 +28,6 @@ pipeline :=\
 [group('♾️  Self')]
 list:
   {{j}} --list
-alias l := list
-
-hello:
-  Get-Item Env:
 
 [group('♾️  Self')]
 just *args:
@@ -45,7 +40,6 @@ just *args:
 run *args: uv-sync
   @{{ if args==empty { quote(YELLOW+'No command given'+NORMAL) } else {empty} }}
   -{{ if args!=empty { j + ';' + sp + args } else {empty} }}
-alias r := run
 
 # 👥 Run recipes as a contributor...
 [group('⛰️ Environments')]
@@ -55,9 +49,8 @@ con *args: uv-sync
   } else {empty} }}{{ if env("VSCODE_FOLDER_OPEN_TASK_RUNNING", empty)=='1' { \
     sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
   } else {empty} }}; \
-  Merge-Envs ('answers', 'base', 'contrib') | Sync-Env\
+  Merge-Envs (('answers', 'base', 'contrib') | Get-Env) | Sync-Env\
   {{ if args!=empty { ';' + sp + j + sp + args } else {empty} }}
-alias c := con
 
 # 🤖 Run recipes in CI...
 [group('⛰️ Environments')]
@@ -92,7 +85,7 @@ _write-env-to-ci-env-file:
   {{dev}} elevate-pyright-warnings
 
 ci_env :=\
-  "(Merge-Envs -Upper (('answers', 'base') + $Env:DEV_ENV))"
+  "(Merge-Envs -Upper (('answers', 'base', $Env:DEV_ENV) | Get-Env))"
 
 # 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]
@@ -107,14 +100,12 @@ ci_env :=\
   }
   {{ if args==empty { 'return' } else { '#?'+BLUE+sp+'Run recipe'+NORMAL } }}
   {{ if args==empty {empty} else { j + sp + args } }}
-alias dc := devcontainer
-
 
 # Sync environment variables to '.vscode/settings.json'
 [script, group('⛰️ Environments')]
 _sync_settings_json:
   {{script_pre}}
-  $Environ = Merge-Envs -Upper ('answers', 'base')
+  $Environ = Merge-Envs -Upper (('answers', 'base') | Get-Env)
   $JsonEnviron = $Environ | ConvertTo-Json -Compress
   $Settings = '.vscode/settings.json'
   $SettingsContent = Get-Content $Settings -Raw
@@ -140,7 +131,7 @@ _sync_settings_json:
 [script, group('⛰️ Environments')]
 _sync_env_yml:
   {{script_pre}}
-  $Environ = Merge-Envs -Lower ('answers', 'base')
+  $Environ = Merge-Envs -Lower (('answers', 'base') | Get-Env)
   $LimitedEnviron = [ordered]@{}
   (Limit-Env $Environ '{{ci_variables}}'.Split()).GetEnumerator() |
     ForEach-Object { $LimitedEnviron[$_.Name] = @{ value = $_.Value } }
@@ -187,7 +178,6 @@ uv *args:
 [group('🟣 uv')]
 uv-run *args:
   {{pre}} {{uvr}} {{args}}
-alias uvr := uv-run
 
 # 🏃 uvx ...
 [group('🟣 uv')]
@@ -198,8 +188,6 @@ uvx *args:
 [group('🟣 uv')]
 uv-sync *args:
   {{pre}} {{uvs}} {{args}}
-alias uvs := uv-sync
-alias sync := uv-sync
 
 #* 🐍 Python
 
@@ -212,25 +200,22 @@ py *args:
 [group('🐍 Python')]
 py-module module *args:
   {{pre}} {{uvr}} '--module' {{quote(module)}} {{args}}
-alias pym := py-module
 
 # 🏃 uv run python -c '...'
 [group('🐍 Python')]
 py-command cmd:
   {{pre}} {{uvr}} 'python' '-c' {{quote(cmd)}}
-alias pyc := py-command
 
 # 📄 uv run --script ...
 [group('🐍 Python')]
 py-script script *args:
   {{pre}} {{uvr}} '--script' {{quote(script)}} {{args}}
-alias pys := py-script
 
 # 📺 uv run --gui-script ...
 [windows, group('🐍 Python')]
 py-gui script *args:
   {{pre}} {{uvr}} '--gui-script' {{quote(script)}} {{args}}
-alias pyg := py-gui
+
 # ❌ uv run --gui-script ...
 [linux, macos, group('❌ Python (N/A for this OS)')]
 py-gui:
@@ -242,14 +227,12 @@ py-gui:
 [group('⚙️  Tools')]
 tool-pytest *args:
   {{pre}} {{uvr}} pytest {{args}}
-alias pytest := tool-pytest
 
 # 📖 preview docs
 [group('⚙️  Tools')]
 tool-docs-preview:
   {{pre}} {{uvr}} sphinx-autobuild --show-traceback docs _site \
     {{ prepend( '--ignore', "'**/temp' '**/data' '**/apidocs' '**/*schema.json'" ) }}
-alias docs := tool-docs-preview
 
 # 📖 build docs
 [group('⚙️  Tools')]
@@ -260,13 +243,11 @@ tool-docs-build:
 [group('⚙️  Tools')]
 tool-pre-commit *args:
   {{pre}} {{uvr}} pre-commit run --verbose {{args}}
-alias pre-commit := tool-pre-commit
 
 # 🔵 pre-commit run --all-files ...
 [group('⚙️  Tools')]
 tool-pre-commit-all *args:
-  {{j}} pre-commit --all-files {{args}}
-alias pre-commit-all := tool-pre-commit-all
+  {{j}} tool-pre-commit --all-files {{args}}
 
 # ✔️  Check that the working tree is clean
 [group('⚙️  Tools')]
@@ -279,19 +260,16 @@ tool-check-clean:
 [group('⚙️  Tools')]
 tool-fawltydeps *args:
   {{pre}} {{uvr}} fawltydeps {{args}}
-alias fawltydeps := tool-fawltydeps
 
 # ✔️  pyright
 [group('⚙️  Tools')]
 tool-pyright:
   {{pre}} {{uvr}} pyright
-alias pyright := tool-pyright
 
 # ✔️  ruff check ... '.'
 [group('⚙️  Tools')]
 tool-ruff *args:
   {{pre}} {{uvr}} ruff check {{args}} .
-alias ruff := tool-ruff
 
 #* 📦 Packaging
 
@@ -299,7 +277,6 @@ alias ruff := tool-ruff
 [group('📦 Packaging')]
 pkg-build *args:
   {{pre}} {{uvr}} {{env("PROJECT_NAME")}} {{args}}
-alias build := pkg-build
 
 # 📜 Build changelog for new version
 [group('📦 Packaging')]
@@ -317,7 +294,6 @@ pkg-release:
   {{pre}} git commit -m '{{env("PROJECT_VERSION")}}'
   {{pre}} git tag --force --sign -m {{env("PROJECT_VERSION")}} {{env("PROJECT_VERSION")}}
   {{pre}} git push
-alias release := pkg-release
 
 #* 👥 Contributor environment setup
 
@@ -352,14 +328,11 @@ con-norm-line-endings:
 [group('👥 Contributor environment setup')]
 con-dev *args:
   {{pre}} {{dev}} {{args}}
-alias dev := con-dev
-alias d := con-dev
 
 # 👥 Run pipeline stage...
 [group('👥 Contributor environment setup')]
 con-pipeline *args:
   {{pre}} {{pipeline}} {{args}}
-alias pipeline := con-pipeline
 
 # 👥 Update changelog...
 [group('👥 Contributor environment setup')]
