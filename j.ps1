@@ -18,10 +18,6 @@ function Sync-Uv {
         (./uv --color 'never' self version) -match 'uv ([\d.]+)' | Out-Null
         if ($Matches[1] -eq $Env:UV_VERSION) { return }
     }
-    if (Get-Command 'uvx' -ErrorAction 'Ignore') {
-        uvx --from "rust-just@$Env:JUST_VERSION" just inst uv
-        return
-    }
     if ($IsWindows) {
         $InstallUv = "Invoke-RestMethod https://astral.sh/uv/$Env:UV_VERSION/install.ps1 | Invoke-Expression"
         powershell -ExecutionPolicy 'ByPass' -Command $InstallUv
