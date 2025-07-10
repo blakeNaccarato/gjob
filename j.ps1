@@ -166,8 +166,8 @@ $Uvx = $Env:CI ? 'uvx' : './uvx'
 Get-Env 'base' | Sync-Env
 $Just = @('--from', "rust-just@$Env:JUST_VERSION", 'just')
 $CI = ($Vars['ci'] ? $Vars['ci'] : $Env:CI)
-if (!$Env:JUST -and (($null -ne $CI) -and ($CI -ne 0))) {
-    & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml'
+if (($null -ne $CI) -and ($CI -ne 0)) {
+    if (!Env:JUST) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
 }
 else { Sync-Uv }
 Merge-Envs ('answers', 'base') | Sync-Env
