@@ -48,56 +48,23 @@ run *args: uv-sync
 alias r := run
 
 # 👥 Run recipes as a contributor...
-[script, group('⛰️ Environments')]
+[group('⛰️ Environments')]
 con *args: uv-sync
-  {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
-  {{script_pre}}
-  {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
-  $Environ = Merge-Envs -Upper {{base_envs}}
-  $DevEnvSettingsJson = $Environ | ConvertTo-Json -Compress
-  $Settings = '.vscode/settings.json'
-  $SettingsContent = Get-Content $Settings -Raw
-  foreach ($Plat in ('linux', 'osx', 'windows')) {
-    $Pat = '(?m)"terminal\.integrated\.env\.$Plat"\s*:\s*\{[^}]*\}'
-    $Repl = '"terminal.integrated.env.$Plat": ' + "$DevEnvSettingsJson"
-    $SettingsContent = $SettingsContent -replace $Pat, $Repl
-  }
-  Set-Content $Settings $SettingsContent -NoNewline
-  if (git status --porcelain $Settings) {
-    try { {{uvr}} pre-commit run 'prettier' --files $Settings | Out-Null } catch {}
-  }
-  $LimitedEnviron = [ordered]@{}
-  (Limit-Env -Lower $Environ '{{ci_variables}}'.Split()).GetEnumerator() |
-    ForEach-Object { $LimitedEnviron[$_.Name] = @{ value = $_.Value } }
-  $Workflow = '.github/workflows/env.yml'
-  $WorkflowData = Get-Content $Workflow | ConvertFrom-Yaml -Ordered
-  Set-Content $Workflow @'
-  # Environment variables
-  #! Please only update by modifying `env.json` then running `./j.ps1 con` to sync
-  '@
-  $WorkflowData.on.workflow_call.outputs = $LimitedEnviron
-  $WorkflowData | ConvertTo-Yaml | Add-Content $Workflow -NoNewline
-  if (git status --porcelain $Workflow) {
-    try { {{uvr}} pre-commit run 'trailing-whitespace' --files $Workflow | Out-Null } catch {}
-    try { {{uvr}} pre-commit run 'mixed-line-ending' --files $Workflow | Out-Null } catch {}
-  }
-  $Env:DEV_ENV = 'contrib'
-  Get-Env $Env:DEV_ENV | Sync-Env
-  {{ if env("PRE_COMMIT", empty)=='1' { j + sp + 'con-git-submodules' } else {empty} }}
-  {{ if env("VSCODE_FOLDER_OPEN_TASK_RUNNING", empty)=='1' { \
-    j + sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
-  } else {empty} }}
-  {{ if args!=empty { j + sp + args } else {empty} }}
+  . {{j}} _sync_settings_json _sync_env_yml{{ if env("PRE_COMMIT", empty)=='1' { \
+    sp + 'con-git-submodules' \
+  } else {empty} }}{{ if env("VSCODE_FOLDER_OPEN_TASK_RUNNING", empty)=='1' { \
+    sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
+  } else {empty} }}; \
+  Merge-Envs ('answers', 'base', 'contrib') | Sync-Env\
+  {{ if args!=empty { ';' + sp + j + sp + args } else {empty} }}
 alias c := con
 
 # 🤖 Run recipes in CI...
 [script, group('⛰️ Environments')]
 ci *args: uv-sync
-  {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
   {{script_pre}}
-  {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
   $Env:DEV_ENV = 'ci'
-  $CiEnv = Merge-Envs -Upper ({{base_envs}} + $Env:DEV_ENV)
+  $CiEnv = Merge-Envs -Upper (('answers', 'base') + $Env:DEV_ENV)
   Sync-Env $CiEnv
   #? Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
   if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }
@@ -119,7 +86,6 @@ ci *args: uv-sync
 # 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]
 @devcontainer *args:
-  {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
   {{script_pre}}
   {{'#?'+BLUE+sp+'Devcontainers need submodules explicitly marked as safe directories'+NORMAL}}
   $Repo = Get-ChildItem '/workspaces'
@@ -132,8 +98,57 @@ ci *args: uv-sync
   {{ if args==empty {empty} else { j + sp + args } }}
 alias dc := devcontainer
 
-base_envs :=\
- "('answers', 'base')"
+
+# 👥 Sync environment variables to '.vscode/settings.json'
+[script, group('⛰️ Environments')]
+_sync_settings_json:
+  {{script_pre}}
+  $Environ = Merge-Envs -Upper ('answers', 'base')
+  $JsonEnviron = $Environ | ConvertTo-Json -Compress
+  $Settings = '.vscode/settings.json'
+  $SettingsContent = Get-Content $Settings -Raw
+  $AnyChanged = $false
+  foreach ($Plat in ('linux', 'osx', 'windows')) {
+    $Pat = '(?m)"terminal\.integrated\.env\.' + $Plat + '"\s*:\s*(?<SettingsEnv>\{[^}]*\})'
+    $Repl = '"terminal.integrated.env.' + $Plat + '": ' + $JsonEnviron
+    if (!($SettingsContent -Match $Pat)) { continue }
+    if (
+      ($Matches['SettingsEnv'] | ConvertFrom-Json | ConvertTo-Json -Compress) -ne
+      $JsonEnviron
+    ) {
+      $AnyChanged = $true
+      $SettingsContent = $SettingsContent -replace $Pat, $Repl
+    }
+  }
+  if ($AnyChanged) {
+    Set-Content $Settings $SettingsContent -NoNewline
+    try { {{uvr}} pre-commit run 'prettier' --files $Settings | Out-Null } catch {}
+  }
+
+# 👥 Sync environment variables to '.github/workflows/env.yml'
+[script, group('⛰️ Environments')]
+_sync_env_yml:
+  {{script_pre}}
+  $Environ = Merge-Envs -Upper ('answers', 'base')
+  $LimitedEnviron = [ordered]@{}
+  (Limit-Env -Lower $Environ '{{ci_variables}}'.Split()).GetEnumerator() |
+    ForEach-Object { $LimitedEnviron[$_.Name] = @{ value = $_.Value } }
+  $Workflow = '.github/workflows/env.yml'
+  $WorkflowData = Get-Content $Workflow | ConvertFrom-Yaml -Ordered
+  if (
+    ($WorkflowData.on.workflow_call.outputs | ConvertTo-Json -Compress) -ne
+    ($LimitedEnviron | ConvertTo-Json -Compress)
+  ) {
+    Set-Content $Workflow @'
+  # Environment variables
+  #! Please only update by modifying `env.json` then running `./j.ps1 con` to sync
+  '@
+    $WorkflowData.on.workflow_call.outputs = $LimitedEnviron
+    $WorkflowData | ConvertTo-Yaml | Add-Content $Workflow -NoNewline
+    try { {{uvr}} pre-commit run 'trailing-whitespace' --files $Workflow | Out-Null } catch {}
+    try { {{uvr}} pre-commit run 'mixed-line-ending' --files $Workflow | Out-Null } catch {}
+  }
+
 ci_variables :=\
   'actions_runner' \
   + sp + 'project_name' \
