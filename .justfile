@@ -57,7 +57,12 @@ con *args: uv-sync
 ci *args: uv-sync
   {{pre}} $Env:DEV_ENV = 'ci'; \
   {{ci_env}} | Sync-Env; \
-  {{j}} _add-venv-tools-to-ci-path _write-env-to-ci-env-file
+  if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }; \
+  if ( !(Get-Content $Env:DEV_CI_PATH_FILE | Select-String -Pattern '.venv') ) { \
+    $Workdir = $PWD -replace '\\', '/'; \
+    Add-Content $Env:DEV_CI_PATH_FILE ("$Workdir/.venv/bin", "$Workdir/.venv/scripts") \
+  }; \
+  {{j}} _write-env-to-ci-env-file
   {{ if args!=empty { j + sp + args } else {empty} }}
 
 # Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
