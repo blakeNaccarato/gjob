@@ -160,7 +160,9 @@ else { Sync-Uv $Environ['UV_VERSION'] }
 #! Invoke Just if arguments were passed. Can dot-source (e.g. in recipes) with no args
 if (!($Env:JUST)) {
     Merge-Envs -Upper ((Get-Env 'answers'), $Environ, (Format-Env $Vars)) | Sync-Env
-    $Env:JUST = '1'
 }
-if ($RemainingArgs) { & $Uvx @Just @RemainingArgs }
-$Env:JUST = $null
+try {
+    $Env:JUST = '1'
+    if ($RemainingArgs) { & $Uvx @Just @RemainingArgs }
+}
+finally { $Env:JUST = $null }
