@@ -41,7 +41,6 @@ function Invoke-Just {
         if ($CI) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
         #? Parse template answers YAML data, merge into environment, and sync
         Merge-Envs -Upper ((Get-Env 'answers'), $Environ) | Sync-Env
-        if ($CI) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
     }
     $Env:JUST = '1'
     #? Invoke Just if arguments passed, otherwise can dot-source in recipes w/o recurse
