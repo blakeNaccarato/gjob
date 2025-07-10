@@ -34,7 +34,7 @@ function Invoke-Just {
     if ($Env:JUST) { $Vars | Sync-Env }
     else {
         #? Otherwise sync the full environment
-        if ($CI) { $Environ = (Merge-Envs ($Environ, (Get-Env 'ci'))) }
+        $Environ = Merge-Envs ($Environ, (Get-Env ($CI ? 'ci' : 'contrib')))
         $Environ | Sync-Env
         if (!$CI) { Sync-Uv $Environ['UV_VERSION'] }
         #? Install YAML parser in CI if missing

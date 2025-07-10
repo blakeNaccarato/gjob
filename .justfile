@@ -44,20 +44,18 @@ run *args: uv-sync
 # 👥 Run recipes as a contributor...
 [group('⛰️ Environments')]
 con *args: uv-sync
-  . {{j}} _sync_settings_json _sync_env_yml{{ if env("PRE_COMMIT", empty)=='1' { \
+  {{j}} _sync_settings_json _sync_env_yml{{ if env("PRE_COMMIT", empty)=='1' { \
     sp + 'con-git-submodules' \
   } else {empty} }}{{ if env("VSCODE_FOLDER_OPEN_TASK_RUNNING", empty)=='1' { \
     sp + 'con-git-submodules' + sp + 'con-pre-commit-hooks' \
-  } else {empty} }}; \
-  Merge-Envs (('answers', 'base', 'contrib') | Get-Env) | Sync-Env\
-  {{ if args!=empty { ';' + sp + j + sp + args } else {empty} }}
+  } else {empty} }}
+  {{ if args!=empty { j + sp + args } else {empty} }}
 
 # 🤖 Run recipes in CI...
 [group('⛰️ Environments')]
 ci *args: uv-sync
-  {{pre}} {{ci_env}} | Sync-Env; \
   {{j}} _add-venv-tools-to-ci $Env:DEV_CI_PATH_FILE _write-env-to-ci-env $Env:DEV_CI_ENV_FILE; \
-  {{dev}} elevate-pyright-warnings\
+  {{pre}} {{dev}} elevate-pyright-warnings
   {{ if args!=empty { ';' + sp + j + sp + args } else {empty} }}
 
 # Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
@@ -74,7 +72,7 @@ _add-venv-tools-to-ci path:
 [script, group('⛰️ Environments')]
 _write-env-to-ci-env path:
   {{script_pre}}
-  $CiEnv = {{ci_env}}
+  $CiEnv = (Merge-Envs -Upper (('answers', 'base', 'ci') | Get-Env))
   $CiEnvText = ''
   $CiEnv['CI_ENV_SET'] = '1'
   $CiEnv.GetEnumerator() | ForEach-Object { $CiEnvText += "$($_.Name)=$($_.Value)`n" }
@@ -82,9 +80,6 @@ _write-env-to-ci-env path:
   if (!(Get-Content {{path}} | Select-String -Pattern 'CI_ENV_SET')) {
       $CiEnvText | Add-Content -NoNewline {{path}}
   }
-
-ci_env :=\
-  "(Merge-Envs -Upper (('answers', 'base', 'ci') | Get-Env))"
 
 # 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]

@@ -31,7 +31,7 @@ jobs:
         with:
           name: "lock"
           path: "uv.lock"
-      - run: "./j.ps1 tool-check-clean"
+      - run: "./j.ps1 con tool-check-clean"
   build-docs:
     needs: "env"
     runs-on: "${{ needs.env.outputs.actions_runner }}"
