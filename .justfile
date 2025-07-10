@@ -55,39 +55,36 @@ con *args: uv-sync
 # 🤖 Run recipes in CI...
 [group('⛰️ Environments')]
 ci *args: uv-sync
-  {{pre}} $Env:DEV_ENV = 'ci'; \
-  {{ci_env}} | Sync-Env; \
-  {{j}} _add-venv-tools-to-ci-path _write-env-to-ci-env-file; \
+  {{pre}} {{ci_env}} | Sync-Env; \
+  {{j}} _add-venv-tools-to-ci $Env:DEV_CI_PATH_FILE _write-env-to-ci-env $Env:DEV_CI_ENV_FILE; \
   {{dev}} elevate-pyright-warnings\
   {{ if args!=empty { ';' + sp + j + sp + args } else {empty} }}
 
 # Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
 [script, group('⛰️ Environments')]
-_add-venv-tools-to-ci-path:
+_add-venv-tools-to-ci path:
   {{script_pre}}
-  Write-Host -ForegroundColor 'Red' "CI Path: $Env:DEV_CI_PATH_FILE"
-  if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }
-  if ( !(Get-Content $Env:DEV_CI_PATH_FILE | Select-String -Pattern '.venv') ) {
+  if (!(Test-Path {{path}})) { New-Item {{path}} | Out-Null }
+  if ( !(Get-Content {{path}} | Select-String -Pattern '.venv') ) {
     $Workdir = $PWD -replace '\\', '/'
-    Add-Content $Env:DEV_CI_PATH_FILE ("$Workdir/.venv/bin", "$Workdir/.venv/scripts")
+    Add-Content {{path}} ("$Workdir/.venv/bin", "$Workdir/.venv/scripts")
   }
 
 # Write environment vars to CI environment file
 [script, group('⛰️ Environments')]
-_write-env-to-ci-env-file:
+_write-env-to-ci-env path:
   {{script_pre}}
-  Write-Host -ForegroundColor 'Red' "CI Env: $Env:DEV_CI_ENV_FILE"
   $CiEnv = {{ci_env}}
   $CiEnvText = ''
   $CiEnv['CI_ENV_SET'] = '1'
   $CiEnv.GetEnumerator() | ForEach-Object { $CiEnvText += "$($_.Name)=$($_.Value)`n" }
-  if (!(Test-Path $Env:DEV_CI_ENV_FILE)) { New-Item $Env:DEV_CI_ENV_FILE | Out-Null }
-  if (!(Get-Content $Env:DEV_CI_ENV_FILE | Select-String -Pattern 'CI_ENV_SET')) {
-      $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
+  if (!(Test-Path {{path}})) { New-Item {{path}} | Out-Null }
+  if (!(Get-Content {{path}} | Select-String -Pattern 'CI_ENV_SET')) {
+      $CiEnvText | Add-Content -NoNewline {{path}}
   }
 
 ci_env :=\
-  "(Merge-Envs -Upper (('answers', 'base', $Env:DEV_ENV) | Get-Env))"
+  "(Merge-Envs -Upper (('answers', 'base', 'ci') | Get-Env))"
 
 # 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]

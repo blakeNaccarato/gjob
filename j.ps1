@@ -94,7 +94,9 @@ function Get-Env {
             $Value = [string]$_.Value
             if (('false', '0') -contains $Value.ToLower()) { $Value = $null }
             if ($Value.ToLower() -eq 'true') { $Value = 'true' }
-            if ($Value -match '^Env:.+$') { $Value = ($EnvVar = Get-EnvVar $Value) ? $EnvVar : '' }
+            if ($Value -match '^Env:.+$') {
+                $Value = ($EnvVar = Get-EnvVar $Value) ? $EnvVar : ''
+            }
             if ($Value -ne '') { $Environ[$Name] = $Value }
         }
         return Format-Env $Environ
