@@ -153,6 +153,7 @@ $Environ = Get-Env 'base'
 $Just = @('--from', "rust-just@$($Environ['JUST_VERSION'])", 'just')
 $CI = ($Vars['ci'] ? $Vars['ci'] : $Env:CI)
 if (($null -ne $CI) -and ($CI -ne 0)) {
+    (Limit-Env $Environ ('JUST_VERSION', 'POWERSHELL_YAML_VERSION')) | Sync-Env
     if (!$Env:JUST) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
 }
 else { Sync-Uv $Environ['UV_VERSION'] }

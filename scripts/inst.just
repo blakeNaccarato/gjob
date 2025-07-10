@@ -1,3 +1,9 @@
+#* Variables
+just_version :=\
+  env('JUST_VERSION', empty)
+powershell_yaml_version :=\
+  env('POWERSHELL_YAML_VERSION', empty)
+
 #* Settings
 set unstable
 set working-directory :=\
@@ -30,8 +36,6 @@ just_inst :=\
     if just_version==empty { empty } else { '@' + just_version } \
   ) \
   + sp + 'just' + sp + '--justfile' + sp + quote('scripts/inst.just') + sp
-just_version :=\
-  env('JUST_VERSION', empty)
 win_inst :=\
   inst_pre \
   + sp + 'winget install' \
@@ -217,8 +221,6 @@ inst_powershell_yaml :=\
       + sp + '-InstallationPolicy $InstallationPolicy' \
       + sp + '} }' \
     }
-powershell_yaml_version :=\
-  env('POWERSHELL_YAML_VERSION', empty)
 
 # 🌐 Install Windows Terminal
 [windows, group('🌐 Install')]
