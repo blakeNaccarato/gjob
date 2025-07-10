@@ -57,18 +57,15 @@ con *args: uv-sync
 ci *args: uv-sync
   {{pre}} $Env:DEV_ENV = 'ci'; \
   {{ci_env}} | Sync-Env; \
-  if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }; \
-  if ( !(Get-Content $Env:DEV_CI_PATH_FILE | Select-String -Pattern '.venv') ) { \
-    $Workdir = $PWD -replace '\\', '/'; \
-    Add-Content $Env:DEV_CI_PATH_FILE ("$Workdir/.venv/bin", "$Workdir/.venv/scripts") \
-  }; \
-  {{j}} _write-env-to-ci-env-file
-  {{ if args!=empty { j + sp + args } else {empty} }}
+  {{j}} _add-venv-tools-to-ci-path _write-env-to-ci-env-file; \
+  {{dev}} elevate-pyright-warnings\
+  {{ if args!=empty { ';' + sp + j + sp + args } else {empty} }}
 
 # Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
 [script, group('⛰️ Environments')]
 _add-venv-tools-to-ci-path:
   {{script_pre}}
+  Write-Host -ForegroundColor 'Red' "CI Path: $Env:DEV_CI_PATH_FILE"
   if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }
   if ( !(Get-Content $Env:DEV_CI_PATH_FILE | Select-String -Pattern '.venv') ) {
     $Workdir = $PWD -replace '\\', '/'
@@ -79,6 +76,7 @@ _add-venv-tools-to-ci-path:
 [script, group('⛰️ Environments')]
 _write-env-to-ci-env-file:
   {{script_pre}}
+  Write-Host -ForegroundColor 'Red' "CI Env: $Env:DEV_CI_ENV_FILE"
   $CiEnv = {{ci_env}}
   $CiEnvText = ''
   $CiEnv['CI_ENV_SET'] = '1'
@@ -87,7 +85,6 @@ _write-env-to-ci-env-file:
   if (!(Get-Content $Env:DEV_CI_ENV_FILE | Select-String -Pattern 'CI_ENV_SET')) {
       $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
   }
-  {{dev}} elevate-pyright-warnings
 
 ci_env :=\
   "(Merge-Envs -Upper (('answers', 'base', $Env:DEV_ENV) | Get-Env))"
