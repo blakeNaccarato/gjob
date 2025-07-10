@@ -327,7 +327,7 @@ con-pre-commit-hooks:
     ) -Contains $False \
   ) { \
     {{uvr}} pre-commit install --install-hooks | Out-Null; \
-    {{quote(GREEN + 'Pre-commit hooks installed.' + NORMAL)}} \
+    Write-Host -ForegroundColor 'Green' 'Pre-commit hooks installed.' \
   }
 hooks :=\
   'pre-commit'
@@ -442,11 +442,15 @@ copier :=\
 #* 🛠️ Repository setup
 
 # 🥾 Initialize repository
+[group('🛠️ Repository setup')]
+repo-init:
+  {{j}} _repo-init-set-up-remote
+  {{j}} _repo-set-up-push
+
+# Initialize repo and set up remote if repo is fresh
 [script, group('🛠️ Repository setup')]
-@repo-init:
-  {{'#?'+BLUE+sp+'Source common shell config'+NORMAL}}
+_repo-init-set-up-remote:
   {{script_pre}}
-  {{'#?'+BLUE+sp+'Initialize repo and set up remote if repo is fresh'+NORMAL}}
   git init
   try { git rev-parse HEAD } catch {
     gh repo create --public --source '.'
@@ -457,7 +461,11 @@ copier :=\
     $Matches = $null
     gh repo edit --homepage 'https://{{env("PROJECT_OWNER_GITHUB_USERNAME")}}.github.io/{{env("GITHUB_REPO_NAME")}}/'
   }
-  {{'#?'+BLUE+sp+'Set up repo and push'+NORMAL}}
+
+# Set up repo and push
+[script, group('🛠️ Repository setup')]
+_repo-set-up-push:
+  {{script_pre}}
   git submodule add --force --name 'typings' 'https://github.com/softboiler/python-type-stubs.git' 'typings'
   {{j}} con
   git add --all
