@@ -60,19 +60,28 @@ con *args: uv-sync
 alias c := con
 
 # 🤖 Run recipes in CI...
-[script, group('⛰️ Environments')]
+[group('⛰️ Environments')]
 ci *args: uv-sync
+  {{pre}} $Env:DEV_ENV = 'ci'; \
+  {{ci_env}} | Sync-Env; \
+  {{j}} _add-venv-tools-to-ci-path _write-env-to-ci-env-file
+  {{ if args!=empty { j + sp + args } else {empty} }}
+
+# Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
+[script, group('⛰️ Environments')]
+_add-venv-tools-to-ci-path:
   {{script_pre}}
-  $Env:DEV_ENV = 'ci'
-  $CiEnv = Merge-Envs -Upper (('answers', 'base') + $Env:DEV_ENV)
-  Sync-Env $CiEnv
-  #? Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
   if (!(Test-Path $Env:DEV_CI_PATH_FILE)) { New-Item $Env:DEV_CI_PATH_FILE | Out-Null }
   if ( !(Get-Content $Env:DEV_CI_PATH_FILE | Select-String -Pattern '.venv') ) {
     $Workdir = $PWD -replace '\\', '/'
     Add-Content $Env:DEV_CI_PATH_FILE ("$Workdir/.venv/bin", "$Workdir/.venv/scripts")
   }
-  #? Write environment vars to CI environment file
+
+# Write environment vars to CI environment file
+[script, group('⛰️ Environments')]
+_write-env-to-ci-env-file:
+  {{script_pre}}
+  $CiEnv = {{ci_env}}
   $CiEnvText = ''
   $CiEnv['CI_ENV_SET'] = '1'
   $CiEnv.GetEnumerator() | ForEach-Object { $CiEnvText += "$($_.Name)=$($_.Value)`n" }
@@ -81,7 +90,9 @@ ci *args: uv-sync
       $CiEnvText | Add-Content -NoNewline $Env:DEV_CI_ENV_FILE
   }
   {{dev}} elevate-pyright-warnings
-  {{ if args!=empty { j + sp + args } else {empty} }}
+
+ci_env :=\
+  "(Merge-Envs -Upper (('answers', 'base') + $Env:DEV_ENV))"
 
 # 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]
@@ -99,7 +110,7 @@ ci *args: uv-sync
 alias dc := devcontainer
 
 
-# 👥 Sync environment variables to '.vscode/settings.json'
+# Sync environment variables to '.vscode/settings.json'
 [script, group('⛰️ Environments')]
 _sync_settings_json:
   {{script_pre}}
@@ -125,7 +136,7 @@ _sync_settings_json:
     try { {{uvr}} pre-commit run 'prettier' --files $Settings | Out-Null } catch {}
   }
 
-# 👥 Sync environment variables to '.github/workflows/env.yml'
+# Sync environment variables to '.github/workflows/env.yml'
 [script, group('⛰️ Environments')]
 _sync_env_yml:
   {{script_pre}}
