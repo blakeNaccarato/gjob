@@ -57,7 +57,7 @@ ci *args: uv-sync
   {{j}} _sync-ci-path-file _sync-ci-env-file; \
   {{pre}} Set-Content {{pyright_config}} ({{j}} {{dev}} elevate-pyright-warnings)
   {{ if args!=empty { ';' + sp + j + sp + args } else {empty} }}
-  {{pre}} Remove-Item {{pyright_config}}
+  if (!$Env:CI) { {{pre}} Remove-Item {{pyright_config}} }
 
 pyright_config :=\
   'pyrightconfig.json'
