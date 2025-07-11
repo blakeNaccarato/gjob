@@ -25,11 +25,10 @@ function Invoke-Just {
             $Idx += 2
         }
     }
-    $Vars = $Vars | Format-Env
 
     #? Sync environment variables necessary for bootstrapping
     $Uvx = $Env:CI ? 'uvx' : './uvx'
-    $Environ = Merge-Envs -Upper ((Get-Env 'base'), $Vars)
+    $Environ = Merge-Envs ((Get-Env 'base'), $Vars)
     $Just = @('--from', "rust-just@$($Environ['JUST_VERSION'])", 'just')
 
     #? Just sync CLI vars if calling recursively from inside a recipe
@@ -44,7 +43,7 @@ function Invoke-Just {
         if ($CI) { & $Uvx @Just --justfile 'scripts/inst.just' 'powershell-yaml' }
         else { Sync-Uv $Environ['UV_VERSION'] }
         #? Parse template answers YAML data, merge into environment, and sync
-        Merge-Envs -Upper ((Get-Env 'answers'), $Environ) | Sync-Env
+        Merge-Envs ((Get-Env 'answers'), $Environ) | Sync-Env
     }
     $Env:JUST = '1'
 
@@ -74,11 +73,10 @@ function Sync-Uv {
 function Sync-Env {
     <#.SYNOPSIS
     Sync environment variables.#>
-    param([Parameter(Mandatory, ValueFromPipeline)][hashtable]$Environ)
+    param([Parameter(Mandatory, ValueFromPipeline)][System.Collections.Specialized.OrderedDictionary]$Environ)
     process {
-        $Environ.GetEnumerator() | ForEach-Object {
-            Set-Item "Env:$($_.Name | Set-Case -Upper)" $_.Value
-        }
+        ($Environ | Format-Env -Upper).GetEnumerator() |
+            ForEach-Object { Set-Item "Env:$($_.Name)" $_.Value }
     }
 }
 
@@ -86,31 +84,23 @@ function Limit-Env {
     <#.SYNOPSIS
     Limit environment to specific variables.#>
     param(
-        [Parameter(Mandatory)][hashtable]$Environ,
-        [Parameter(Mandatory)][string[]]$Vars,
-        [switch]$Lower,
-        [switch]$Upper
+        [Parameter(Mandatory)][System.Collections.Specialized.OrderedDictionary]$Environ,
+        [Parameter(Mandatory)][string[]]$Vars
     )
     $Limited = [ordered]@{}
     $Environ.GetEnumerator() | ForEach-Object {
-        if ($Vars -contains $_.Name) {
-            $Limited[($_.Name | Set-Case -Lower:$Lower -Upper:$Upper)] = $_.Value
-        }
+        if ($Vars -contains $_.Name) { $Limited[$_.Name] = $_.Value }
     }
-    return Format-Env $Limited
+    return $Limited
 }
 
 function Merge-Envs {
     <#.SYNOPSIS
     Merge environment variables.#>
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)][hashtable[]]$Envs,
-        [switch]$Lower,
-        [switch]$Upper
-    )
+    param([Parameter(Mandatory)][System.Collections.Specialized.OrderedDictionary[]]$Envs)
     $Merged = [ordered]@{}
     $Envs | ForEach-Object { $_.GetEnumerator() } | ForEach-Object {
-        $Merged[($_.Name | Set-Case -Lower:$Lower -Upper:$Upper)] = $_.Value
+        $Merged[$_.Name] = $_.Value
     }
     return Format-Env $Merged
 }
@@ -118,11 +108,7 @@ function Merge-Envs {
 function Get-Env {
     <#.SYNOPSIS
     Get environment variables.#>
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)][string]$Name,
-        [switch]$Lower,
-        [switch]$Upper
-    )
+    param([Parameter(Mandatory, ValueFromPipeline)][string]$Name)
     process {
         $Envs = (Get-Content 'env.json' | ConvertFrom-Json)
         if (($Path = $Envs.$Name) -is [string]) {
@@ -136,9 +122,8 @@ function Get-Env {
         }
         else { $RawEnviron = $Envs.$Name.PsObject.Properties }
         $Environ = [ordered]@{}
-        $RawEnviron.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
+        $RawEnviron.GetEnumerator() | ForEach-Object {
             $Name = (($_.Name -match '^_.+$') ? "template$($_.Name)" : $_.Name)
-            $Name = $Name | Set-Case -Lower:$Lower -Upper:$Upper
             $Value = [string]$_.Value
             if (('false', '0') -contains $Value.ToLower()) { $Value = $null }
             if ($Value.ToLower() -eq 'true') { $Value = 'true' }
@@ -147,19 +132,26 @@ function Get-Env {
             }
             if ($Value -ne '') { $Environ[$Name] = $Value }
         }
-        return Format-Env $Environ
+        return $Environ
     }
 }
 
 function Format-Env {
     <#.SYNOPSIS
     Sort environment variables by name.#>
-    param([Parameter(Mandatory, ValueFromPipeline)][hashtable]$Environ)
-    $Sorted = [ordered]@{}
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)][System.Collections.Specialized.OrderedDictionary]$Environ,
+        [switch]$Upper,
+        [switch]$Lower
+    )
+    $Formatted = [ordered]@{}
     $Environ.GetEnumerator() | Sort-Object 'Name' | ForEach-Object {
-        $Sorted[$_.Name] = $_.Value
+        if ($Upper) { $Name = $_.Name.ToUpper() }
+        elseif ($Lower) { $Name = $_.Name.ToLower() }
+        else { $Name = $_.Name }
+        $Formatted[$Name] = $_.Value
     }
-    return $Sorted
+    return $Formatted
 }
 
 function Get-EnvVar {
@@ -170,21 +162,6 @@ function Get-EnvVar {
         $Var = Get-Item $Name -ErrorAction 'Ignore'
         if (!$Var) { return }
         return $Var | Select-Object -ExpandProperty 'Value'
-    }
-}
-
-function Set-Case {
-    <#.SYNOPSIS
-    Set case of a string to upper or lower.#>
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)][string]$Name,
-        [switch]$Upper,
-        [switch]$Lower
-    )
-    process {
-        if ($Upper) { return $Name.ToUpper() }
-        elseif ($Lower) { return $Name.ToLower() }
-        return $Name
     }
 }
 

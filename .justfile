@@ -72,7 +72,7 @@ _add-venv-tools-to-ci path:
 [script, group('⛰️ Environments')]
 _write-env-to-ci-env path:
   {{script_pre}}
-  $CiEnv = (Merge-Envs -Upper (('base', 'ci') | Get-Env))
+  $CiEnv = Merge-Envs (('base', 'ci') | Get-Env) | Format-Env -Upper
   $CiEnvText = ''
   $CiEnv['CI_ENV_SET'] = '1'
   $CiEnv.GetEnumerator() | ForEach-Object { $CiEnvText += "$($_.Name)=$($_.Value)`n" }
@@ -99,7 +99,7 @@ _write-env-to-ci-env path:
 [script, group('⛰️ Environments')]
 _sync_settings_json:
   {{script_pre}}
-  $Environ = Merge-Envs -Upper (('base', 'contrib') | Get-Env)
+  $Environ = (Merge-Envs (('base', 'contrib') | Get-Env)) | Format-Env -Upper
   $JsonEnviron = $Environ | ConvertTo-Json -Compress
   $Settings = '.vscode/settings.json'
   $SettingsContent = Get-Content $Settings -Raw
@@ -125,7 +125,7 @@ _sync_settings_json:
 [script, group('⛰️ Environments')]
 _sync_env_yml:
   {{script_pre}}
-  $Environ = Merge-Envs -Lower (('answers', 'base') | Get-Env)
+  $Environ = Merge-Envs (('answers', 'base') | Get-Env) | Format-Env -Lower
   $LimitedEnviron = [ordered]@{}
   (Limit-Env $Environ '{{ci_variables}}'.Split()).GetEnumerator() |
     ForEach-Object { $LimitedEnviron[$_.Name] = @{ value = $_.Value } }
