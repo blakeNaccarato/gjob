@@ -73,7 +73,7 @@ function Sync-Uv {
 function Sync-Env {
     <#.SYNOPSIS
     Sync environment variables.#>
-    param([Parameter(Mandatory, ValueFromPipeline)][System.Collections.Specialized.OrderedDictionary]$Environ)
+    param([Parameter(Mandatory, ValueFromPipeline)][hashtable]$Environ)
     process {
         ($Environ | Format-Env -Upper).GetEnumerator() |
             ForEach-Object { Set-Item "Env:$($_.Name)" $_.Value }
@@ -84,10 +84,10 @@ function Limit-Env {
     <#.SYNOPSIS
     Limit environment to specific variables.#>
     param(
-        [Parameter(Mandatory)][System.Collections.Specialized.OrderedDictionary]$Environ,
+        [Parameter(Mandatory)][hashtable]$Environ,
         [Parameter(Mandatory)][string[]]$Vars
     )
-    $Limited = [ordered]@{}
+    $Limited = @{}
     $Environ.GetEnumerator() | ForEach-Object {
         if ($Vars -contains $_.Name) { $Limited[$_.Name] = $_.Value }
     }
@@ -97,8 +97,8 @@ function Limit-Env {
 function Merge-Envs {
     <#.SYNOPSIS
     Merge environment variables.#>
-    param([Parameter(Mandatory)][System.Collections.Specialized.OrderedDictionary[]]$Envs)
-    $Merged = [ordered]@{}
+    param([Parameter(Mandatory)][hashtable[]]$Envs)
+    $Merged = @{}
     $Envs | ForEach-Object { $_.GetEnumerator() } | ForEach-Object {
         $Merged[$_.Name] = $_.Value
     }
@@ -121,7 +121,7 @@ function Get-Env {
             else { throw "Could not parse environment '$Name' at '$Path'" }
         }
         else { $RawEnviron = $Envs.$Name.PsObject.Properties }
-        $Environ = [ordered]@{}
+        $Environ = @{}
         $RawEnviron.GetEnumerator() | ForEach-Object {
             $Name = (($_.Name -match '^_.+$') ? "template$($_.Name)" : $_.Name)
             $Value = [string]$_.Value
@@ -140,7 +140,7 @@ function Format-Env {
     <#.SYNOPSIS
     Sort environment variables by name.#>
     param(
-        [Parameter(Mandatory, ValueFromPipeline)][System.Collections.Specialized.OrderedDictionary]$Environ,
+        [Parameter(Mandatory, ValueFromPipeline)][hashtable]$Environ,
         [switch]$Upper,
         [switch]$Lower
     )
