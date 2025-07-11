@@ -32,7 +32,7 @@ function Invoke-Just {
     $Environ = Merge-Envs -Upper ((Get-Env 'base'), $Vars)
     $Just = @('--from', "rust-just@$($Environ['JUST_VERSION'])", 'just')
 
-    #? Just sync CLI vars line if calling recursively from inside a recipe
+    #? Just sync CLI vars if calling recursively from inside a recipe
     if ($Env:JUST) { $Vars | Sync-Env }
     else {
         $RawCI = ($Environ['ci'] ? $Environ['ci'] : $Env:CI)
