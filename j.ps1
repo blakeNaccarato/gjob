@@ -125,12 +125,10 @@ function Get-Env {
         $RawEnviron.GetEnumerator() | ForEach-Object {
             $Name = (($_.Name -match '^_.+$') ? "template$($_.Name)" : $_.Name)
             $Value = [string]$_.Value
-            if (('false', '0') -contains $Value.ToLower()) { $Value = $null }
-            if ($Value.ToLower() -eq 'true') { $Value = 'true' }
-            if ($Value -match '^Env:.+$') {
-                $Value = ($EnvVar = Get-EnvVar $Value) ? $EnvVar : ''
-            }
-            if ($Value -ne '') { $Environ[$Name] = $Value }
+            if (('false', 'true') -contains $Value.ToLower()) { $Value = $Value.ToLower() }
+            if ($Value -match '^Env:.+$') { $Value = Get-EnvVar $Value }
+            if (($null -eq $Value) -or ($Value -eq '')) { $Value = $null }
+            $Environ[$Name] = $Value
         }
         return $Environ
     }
