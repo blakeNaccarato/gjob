@@ -54,32 +54,49 @@ con *args: uv-sync
 # 🤖 Run recipes in CI...
 [group('⛰️ Environments')]
 ci *args: uv-sync
-  {{j}} _add-venv-tools-to-ci $Env:DEV_CI_PATH_FILE _write-env-to-ci-env $Env:DEV_CI_ENV_FILE; \
-  {{pre}} {{dev}} elevate-pyright-warnings
+  {{j}} _sync-ci-path-file _sync-ci-env-file; \
+  {{pre}} Set-Content {{pyright_config}} ({{j}} {{dev}} elevate-pyright-warnings)
   {{ if args!=empty { ';' + sp + j + sp + args } else {empty} }}
+  {{pre}} Remove-Item {{pyright_config}}
+
+pyright_config :=\
+  'pyrightconfig.json'
 
 # Add `.venv` tools to CI path. Needed for some GitHub Actions like pyright
 [script, group('⛰️ Environments')]
-_add-venv-tools-to-ci path:
+_sync-ci-path-file:
   {{script_pre}}
-  if (!(Test-Path {{path}})) { New-Item {{path}} | Out-Null }
-  if ( !(Get-Content {{path}} | Select-String -Pattern '.venv') ) {
+  $DevCiPathFile = {{quote(env("DEV_CI_PATH_FILE"))}}
+  if (!(Test-Path $DevCiPathFile)) { New-Item $DevCiPathFile | Out-Null }
+  if ( !(Get-Content $DevCiPathFile | Select-String -Pattern '.venv') ) {
     $Workdir = $PWD -replace '\\', '/'
-    Add-Content {{path}} ("$Workdir/.venv/bin", "$Workdir/.venv/scripts")
+    Add-Content $DevCiPathFile ("$Workdir/.venv/bin", "$Workdir/.venv/scripts")
   }
 
 # Write environment vars to CI environment file
 [script, group('⛰️ Environments')]
-_write-env-to-ci-env path:
+_sync-ci-env-file:
   {{script_pre}}
+  $DevCiEnvFile = {{quote(env("DEV_CI_ENV_FILE"))}}
   $CiEnv = Merge-Envs (('base', 'ci') | Get-Env) | Format-Env -Upper
   $CiEnvText = ''
   $CiEnv['CI_ENV_SET'] = '1'
   $CiEnv.GetEnumerator() | ForEach-Object { $CiEnvText += "$($_.Name)=$($_.Value)`n" }
-  if (!(Test-Path {{path}})) { New-Item {{path}} | Out-Null }
-  if (!(Get-Content {{path}} | Select-String -Pattern 'CI_ENV_SET')) {
-      $CiEnvText | Add-Content -NoNewline {{path}}
+  if (!(Test-Path $DevCiEnvFile)) { New-Item $DevCiEnvFile | Out-Null }
+  if (!(Get-Content $DevCiEnvFile | Select-String -Pattern 'CI_ENV_SET')) {
+      $CiEnvText | Add-Content -NoNewline $DevCiEnvFile
   }
+
+# 👥 Write environment vars to temporary `.env`-like environment file
+[script, group('⛰️ Environments')]
+sync-contrib-env-file:
+  {{script_pre}}
+  $DevEnvFile = New-TemporaryFile
+  $Environ = Merge-Envs (('base', 'contrib') | Get-Env) | Format-Env -Upper
+  $EnvironText = ''
+  $Environ.GetEnumerator() | ForEach-Object { $EnvironText += "$($_.Name)=$($_.Value)`n" }
+  $EnvironText | Set-Content -NoNewline $DevEnvFile
+  "$DevEnvFile"
 
 # 📦 Run recipes in devcontainer
 [script, group('⛰️ Environments')]

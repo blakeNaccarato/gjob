@@ -3,8 +3,6 @@
 from cappa.base import command, invoke
 from cappa.subcommand import Subcommands
 
-from gjob_dev.cli import ElevatePyrightWarnings
-
 
 @command(invoke="gjob_dev.tools.add_change")
 class AddChange:
@@ -19,6 +17,11 @@ class GetActions:
 @command(invoke="gjob_dev.tools.sync_local_dev_configs")
 class SyncLocalDevConfigs:
     """Synchronize local dev configs."""
+
+
+@command(invoke="gjob_dev.tools.elevate_pyright_warnings")
+class ElevatePyrightWarnings:
+    """Elevate Pyright warnings to errors."""
 
 
 @command()
