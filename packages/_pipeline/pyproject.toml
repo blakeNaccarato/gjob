@@ -9,19 +9,9 @@ description = "Data pipeline"
 dependencies = [
   "astroid>=3.3.1",
   "cappa>=0.22.4",
-  "dulwich>=0.23.0",
-  "dvc>=3.61.0",
-  "ipython>=8.26.0",
-  "matplotlib>=3.7.2",
   "more-itertools>=10.4.0",
-  "nbformat>=5.10.4",
-  "pandas[hdf5,performance]>=2.2.2",
-  "pint>=0.24.4",
-  "ploomber-engine>=0.0.30",
   "pyarrow>=14.0.1",
-  "pydantic-settings>=2.5.2",
   "pydantic>=2.9.1",
-  "pyyaml>=6.0.2",
 ]
 [project.scripts]
 "gjob-pipeline" = "gjob_pipeline.__main__:main"
@@ -29,7 +19,13 @@ dependencies = [
 [tool.fawltydeps]
 deps = ["packages/_pipeline/pyproject.toml"]
 code = ["packages/_pipeline/src"]
-ignore_undeclared = ["gjob_dev", "gjob_pipeline", "cachier", "context_models"]
+ignore_undeclared = [
+  "gjob_dev",
+  "gjob_pipeline",
+  "cachier",
+  "context_models",
+  "pipeline_helper",
+]
 ignore_unused = [
   "pyarrow", # Used in `gjob_pipeline.__init__`
 ]

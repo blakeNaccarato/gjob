@@ -14,16 +14,16 @@ from gjob_pipeline.models.paths import paths
 class Deps(stage.Deps):
     stage: DirectoryPathSerPosix = Path(__file__).parent
     nb: DocsFile = paths.notebooks[stage.stem]
-    mboxes: DataDir = paths.mboxes
+    example: DataDir = paths.example
 
 
 class Outs(stage.Outs):
-    reqs: DataDir = paths.reqs
+    example_out: DataDir = paths.example_out
 
 
-@command(default_long=True, invoke="gjob_pipeline.stages.convert.__main__.main")
-class Convert(Params[Deps, Outs]):
-    """Get job requisitions from mailboxes."""
+@command(default_long=True, invoke="gjob_pipeline.stages.example.__main__.main")
+class Example(Params[Deps, Outs]):
+    """Run example pipeline stage."""
 
     deps: Ann[Deps, Arg(hidden=True)] = Field(default_factory=Deps)
     outs: Ann[Outs, Arg(hidden=True)] = Field(default_factory=Outs)

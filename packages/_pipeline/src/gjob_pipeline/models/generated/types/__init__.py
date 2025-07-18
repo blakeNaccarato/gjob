@@ -7,8 +7,7 @@ from sys import executable
 from textwrap import dedent
 
 from astroid import AnnAssign, Const, Subscript, Tuple, extract_node
-
-from gjob_pipeline.config import const
+from pipeline_helper.config import const
 
 
 def init():

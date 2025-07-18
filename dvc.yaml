@@ -1,6 +1,6 @@
 stages:
   convert:
-    cmd: pwsh -Command "./Invoke-Uv gjob-pipeline stage convert"
+    cmd: pwsh -Command "./j.ps1 gjob-pipeline stage convert"
     deps:
       - packages/_pipeline/src/gjob_pipeline/stages/convert
       - docs/notebooks/convert.ipynb
@@ -12,8 +12,19 @@ stages:
           push: false
     params:
       - stage
+  example:
+    cmd: pwsh -Command "./j.ps1 gjob-pipeline stage example"
+    deps:
+      - packages/_pipeline/src/gjob_pipeline/stages/example
+      - docs/notebooks/example.ipynb
+      - data/example
+    outs:
+      - data/example_out:
+          persist: true
+    params:
+      - stage
   skip_cloud:
-    cmd: pwsh -Command "./Invoke-Uv gjob-pipeline stage skip-cloud"
+    cmd: pwsh -Command "./j.ps1 gjob-pipeline stage skip-cloud"
     outs:
       - data/mboxes:
           cache: false

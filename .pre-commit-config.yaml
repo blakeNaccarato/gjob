@@ -63,6 +63,17 @@ repos:
             |docs/.*
             |tests/.*
           )$
+      - id: "fawltydeps-pipeline-helper"
+        name: "fawltydeps-pipeline-helper"
+        pass_filenames: false
+        language: "system"
+        entry: "pwsh -NonInteractive -NoProfile -Command './j.ps1 tool-fawltydeps --config-file packages/_pipeline-helper/pyproject.toml'"
+        files: |
+          (?x)^(
+            packages/_pipeline/.*
+            |docs/.*
+            |tests/.*
+          )$
       - id: "pytest-fast-only"
         name: "pytest-fast-only"
         pass_filenames: false

@@ -4,30 +4,27 @@ A hacky workaround for now, since Cappa traverses structures differently than va
 Pydantic, the uppermost context is not preserved correctly.
 """
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable
 from typing import Any
 
 from cappa.arg import Arg
 from cappa.base import parse_command
 from cappa.command import Command
-from cappa.help import HelpFormatable
-from cappa.invoke import Dep, resolve_callable
+from cappa.help import HelpFormattable
+from cappa.invoke import DepTypes, resolve_callable
 from cappa.output import Output
 from context_models import CONTEXT, ContextStore
 from context_models.types import Context
 from more_itertools import first
+from pipeline_helper.models.contexts import PipelineHelperContexts
+from pipeline_helper.models.path import get_pipeline_helper_context
 from pydantic import BaseModel
-
-from gjob_pipeline.models.contexts import GjobPipelineContexts
-from gjob_pipeline.models.path import get_gjob_pipeline_context
 
 
 def invoke(
     obj: type | Command[Any],
     *,
-    deps: Sequence[Callable[..., Any]]
-    | Mapping[Callable[..., Any], Dep[Any] | Any]
-    | None = None,
+    deps: DepTypes = None,
     argv: list[str] | None = None,
     backend: Callable[..., Any] | None = None,
     color: bool = True,
@@ -36,10 +33,10 @@ def invoke(
     completion: bool | Arg[Any] = True,
     theme: Any | None = None,
     output: Output | None = None,
-    help_formatter: HelpFormatable | None = None,
+    help_formatter: HelpFormattable | None = None,
 ):
     """Modified Cappa CLI parser that surfaces the first innermost context."""  # noqa: D401
-    command, parsed_command, instance, concrete_output = parse_command(
+    command, parsed_command, instance, concrete_output, state = parse_command(
         obj=obj,
         argv=argv,
         backend=backend,
@@ -51,16 +48,21 @@ def invoke(
         output=output,
         help_formatter=help_formatter,
     )
-    from gjob_pipeline.cli import GjobPipeline, Stage  # noqa: PLC0415
+    from gjob_pipeline.cli import Pipeline, Stage  # noqa: PLC0415
 
     if isinstance(instance, ContextStore):
         instance.context = get_first_innermost_context(instance)
-    elif isinstance(instance, GjobPipeline) and isinstance(instance.commands, Stage):
+    elif isinstance(instance, Pipeline) and isinstance(instance.commands, Stage):
         instance.commands.commands.context = get_first_innermost_context(
             instance.commands.commands
         )
     resolved, global_deps = resolve_callable(
-        command, parsed_command, instance, output=concrete_output, deps=deps
+        command,
+        parsed_command,
+        instance,
+        output=concrete_output,
+        state=state,
+        deps=deps,
     )
     for dep in global_deps:
         with dep.get(concrete_output):
@@ -70,7 +72,7 @@ def invoke(
         return value
 
 
-def get_first_innermost_context(model: ContextStore) -> GjobPipelineContexts:
+def get_first_innermost_context(model: ContextStore) -> PipelineHelperContexts:
     """Get the first innermost context."""
     context = model.context
     m = model
@@ -78,7 +80,7 @@ def get_first_innermost_context(model: ContextStore) -> GjobPipelineContexts:
         (m := first((v for k, v in dict(m).items() if k != "context"), default=None)),
         BaseModel,
     ):
-        context: Context = dict(m).get(CONTEXT, get_gjob_pipeline_context())
+        context: Context = dict(m).get(CONTEXT, get_pipeline_helper_context())
     return context  # pyright: ignore[reportReturnType]
 
 

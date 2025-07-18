@@ -1,6 +1,6 @@
 from pipeline_helper.notebook_namespaces import get_nb_ns
 
-from gjob_pipeline.stages.convert import Convert as Params
+from gjob_pipeline.stages.example import Example as Params
 
 
 def main(params: Params):

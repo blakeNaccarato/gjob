@@ -76,16 +76,19 @@ constraint-dependencies = [
   #? Intentionally don't check new dependency groups where we keep our dev deps
   #? Avoids lots of repetition in `tool.fawltydeps.ignore_unused`
   "fawltydeps<0.19.0",
+  #? Need to fix issue with `context-models` for newer Pydantic
+  "pydantic<2.9.2",
 ]
 [tool.uv.pip]
 python-version = "3.11"
 [tool.uv.sources]
-cachier = { path = "packages/cachier", editable = true }
-context-models = { path = "packages/context-models", editable = true }
 gjob-dev = { workspace = true }
 gjob-pipeline = { workspace = true }
+cachier = { path = "packages/cachier", editable = true }
+context-models = { path = "packages/context-models", editable = true }
+pipeline-helper = { workspace = true }
 [tool.uv.workspace]
-members = ["packages/_dev", "packages/_pipeline"]
+members = ["packages/_dev", "packages/_pipeline", "packages/_pipeline-helper"]
 
 [tool.coverage.report]
 exclude_also = ['if __name__ == "__main__":']
@@ -96,6 +99,7 @@ source = [
   "docs",
   "packages/_dev",
   "packages/_pipeline",
+  "packages/_pipeline-helper",
   "notebooks",
   "scripts",
   "tests",
@@ -150,6 +154,7 @@ include = [
   "notebooks",
   "packages/_dev",
   "packages/_pipeline",
+  "packages/_pipeline-helper",
   "scripts",
   "tests",
 ]
@@ -262,6 +267,7 @@ src = [
   "notebooks",
   "packages/_dev",
   "packages/_pipeline",
+  "packages/_pipeline-helper",
   "scripts",
   "tests",
 ]

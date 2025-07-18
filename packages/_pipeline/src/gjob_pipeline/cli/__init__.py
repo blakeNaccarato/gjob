@@ -4,30 +4,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from cappa.base import command
 from cappa.subcommand import Subcommands
+from pipeline_helper.sync_dvc import SyncDvc
 
-from gjob_pipeline.cli.experiments import Trackpy
 from gjob_pipeline.stages.convert import Convert
+from gjob_pipeline.stages.example import Example
 from gjob_pipeline.stages.skip_cloud import SkipCloud
-from gjob_pipeline.sync_dvc import SyncDvc
 
 
 @dataclass
 class Stage:
     """Run a pipeline stage."""
 
-    commands: Subcommands[SkipCloud | Convert]
+    commands: Subcommands[Example | Convert | SkipCloud]
 
 
-@dataclass
-class Exp:
-    """Run a pipeline experiment."""
-
-    commands: Subcommands[Trackpy]
-
-
-@dataclass
-class GjobPipeline:
+@command(name="gjob-pipeline")
+class Pipeline:
     """Run the research data pipeline."""
 
-    commands: Subcommands[SyncDvc | Stage | Exp]
+    commands: Subcommands[SyncDvc | Stage]
