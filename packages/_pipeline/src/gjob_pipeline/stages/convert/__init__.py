@@ -3,10 +3,11 @@ from typing import Annotated as Ann
 
 from cappa.arg import Arg
 from cappa.base import command
+from more_itertools import first
 from pipeline_helper.models import stage
 from pipeline_helper.models.params import Params
 from pipeline_helper.models.path import DataDir, DirectoryPathSerPosix, DocsFile
-from pydantic import Field
+from pydantic import AfterValidator, Field
 
 from gjob_pipeline.models.paths import paths
 
@@ -27,3 +28,11 @@ class Convert(Params[Deps, Outs]):
 
     deps: Ann[Deps, Arg(hidden=True)] = Field(default_factory=Deps)
     outs: Ann[Outs, Arg(hidden=True)] = Field(default_factory=Outs)
+    mbox_name: Ann[
+        str,
+        Arg(hidden=True),
+        AfterValidator(
+            lambda name, info: name
+            or first(sorted(info.data["deps"].mboxes.iterdir())).name
+        ),
+    ] = ""
