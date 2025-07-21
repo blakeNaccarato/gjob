@@ -898,7 +898,6 @@ dependencies = [
     { name = "astroid" },
     { name = "cappa" },
     { name = "more-itertools" },
-    { name = "pyarrow" },
     { name = "pydantic" },
 ]
 
@@ -907,7 +906,6 @@ requires-dist = [
     { name = "astroid", specifier = ">=3.3.1" },
     { name = "cappa", specifier = ">=0.22.4" },
     { name = "more-itertools", specifier = ">=10.4.0" },
-    { name = "pyarrow", specifier = ">=14.0.1" },
     { name = "pydantic", specifier = ">=2.9.1" },
 ]
 
@@ -1963,7 +1961,6 @@ dependencies = [
     { name = "pandas", extra = ["hdf5", "performance"] },
     { name = "pint" },
     { name = "ploomber-engine" },
-    { name = "pyarrow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
@@ -1980,7 +1977,6 @@ requires-dist = [
     { name = "pandas", extras = ["hdf5", "performance"], specifier = ">=2.2.2" },
     { name = "pint", specifier = ">=0.24.4" },
     { name = "ploomber-engine", specifier = ">=0.0.30" },
-    { name = "pyarrow", specifier = ">=14.0.1" },
     { name = "pydantic", specifier = ">=2.9.1" },
     { name = "pydantic-settings", specifier = ">=2.5.2" },
     { name = "pyyaml", specifier = ">=6.0.2" },

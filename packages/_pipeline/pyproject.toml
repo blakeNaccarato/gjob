@@ -10,7 +10,6 @@ dependencies = [
   "astroid>=3.3.1",
   "cappa>=0.22.4",
   "more-itertools>=10.4.0",
-  "pyarrow>=14.0.1",
   "pydantic>=2.9.1",
 ]
 [project.scripts]
@@ -25,7 +24,4 @@ ignore_undeclared = [
   "cachier",
   "context_models",
   "pipeline_helper",
-]
-ignore_unused = [
-  "pyarrow", # Used in `gjob_pipeline.__init__`
 ]

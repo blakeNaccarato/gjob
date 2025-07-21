@@ -463,6 +463,12 @@ _repo-init-set-up-remote:
 _repo-set-up-push:
   {{script_pre}}
   git submodule add --force --name 'typings' 'https://github.com/softboiler/python-type-stubs.git' 'typings'
+  git submodule add --force --name 'context-models' 'https://github.com/softboiler/context-models.git' 'packages/context-models'
+  git submodule add --force --name 'cachier' 'https://github.com/softboiler/cachier.git' 'packages/cachier'
+  Set-Location 'packages/cachier'
+  git checkout 'db7f394a553a90944ca25c2d687771006e77a024'
+  Set-Location '../..'
+  git add --all
   {{j}} con
   git add --all
   try { git commit --no-verify -m 'Prepare template using softboiler/copier-pipeline' }
