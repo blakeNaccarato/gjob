@@ -7,8 +7,11 @@ from devtools import PrettyFormat
 from IPython.core.display import Markdown, Pretty
 from IPython.display import display
 from pydantic import BaseModel
+from structlog import get_logger
 
-PFORMAT = PrettyFormat(repr_strings=True)
+pretty_format = PrettyFormat(repr_strings=True)
+
+log = get_logger()
 
 
 @dataclass
@@ -25,6 +28,6 @@ def disp_named(*args: Named | tuple[str, Any]):
         if isinstance(named.value, str):
             display(Pretty(named.value))
         elif isinstance(named.value, BaseModel):
-            display(PFORMAT(named.value))
+            display(pretty_format(named.value))
         else:
             display(named.value)

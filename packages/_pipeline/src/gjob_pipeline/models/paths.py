@@ -3,13 +3,15 @@
 from pathlib import Path
 from typing import get_args
 
-from gjob_pipeline.models.generated.types.stages import StageName
 from pipeline_helper.models.path import (
     DataDir,
+    DataFile,
     DocsFile,
     PipelineHelperContextStore,
     get_pipeline_helper_config,
 )
+
+from gjob_pipeline.models.generated.types.stages import StageName
 
 
 class Paths(PipelineHelperContextStore):
@@ -22,8 +24,9 @@ class Paths(PipelineHelperContextStore):
     }
     example: DataDir = Path("example")
     example_out: DataDir = Path("example_out")
+    mail: DataFile = Path("mail.json")
     mboxes: DataDir = Path("mboxes")
-    reqs: DataDir = Path("reqs")
+    reqs: DataFile = Path("reqs.json")
 
 
 paths = Paths()

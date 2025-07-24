@@ -13,6 +13,7 @@ from pydantic.functional_validators import ModelWrapValidatorHandler
 from pipeline_helper.models.contexts import ROOTED
 from pipeline_helper.models.path import (
     DataDir,
+    DocsFile,
     PipelineHelperContextStore,
     get_pipeline_helper_config,
 )
@@ -63,6 +64,12 @@ class StagePaths(PipelineHelperContextStore):
 
 class Deps(StagePaths):
     """Stage dependency paths."""
+
+
+class NbDeps(Deps):
+    """Stage dependency paths with a notebook."""
+
+    nb: DocsFile
 
 
 class Outs(StagePaths):

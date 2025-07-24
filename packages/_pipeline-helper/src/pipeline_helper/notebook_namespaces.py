@@ -7,17 +7,27 @@ from functools import partial
 from inspect import getsource
 from textwrap import dedent
 from types import SimpleNamespace
+from typing import Any
 
 from cachier import cachier  # pyright: ignore[reportMissingImports]
 from nbformat import NO_CONVERT, reads
 from ploomber_engine._util import parametrize_notebook
 from ploomber_engine.ipython import PloomberClient
+from structlog import get_logger
 
 from pipeline_helper.hashes import hash_args
+from pipeline_helper.models import params
+from pipeline_helper.models.stage import NbDeps, Outs
 from pipeline_helper.types import Attributes, Params, SimpleNamespaceReceiver
+
+log = get_logger()
 
 NO_ATTRS = []
 NO_PARAMS = {}
+
+
+def log_nb(params: params.Params[NbDeps, Outs], **kwds: Any):
+    log.info({"_nb": params.deps.nb, **kwds})
 
 
 def get_ns_attrs(receiver: SimpleNamespaceReceiver) -> list[str]:
@@ -28,7 +38,10 @@ def get_ns_attrs(receiver: SimpleNamespaceReceiver) -> list[str]:
 
 
 def get_nb_ns(
-    nb: str, params: Params = NO_PARAMS, attributes: Attributes = NO_ATTRS
+    nb: str,
+    params: Params = NO_PARAMS,
+    attributes: Attributes = NO_ATTRS,
+    display_stdout: bool = False,
 ) -> SimpleNamespace:
     """Get notebook namespace, optionally parametrizing or limiting returned attributes.
 
@@ -50,7 +63,7 @@ def get_nb_ns(
         )
         ```
     """
-    nb_client = get_nb_client(nb)
+    nb_client = get_nb_client(nb, display_stdout)
     # We can't just `nb_client.execute(params=...)` since`nb_client.get_namespace()`
     # would execute all over again
     if params:
@@ -99,9 +112,11 @@ def get_cached_nb_ns(
     return get_nb_ns(nb, params, attributes)
 
 
-def get_nb_client(nb: str) -> PloomberClient:
+def get_nb_client(nb: str, display_stdout: bool = False) -> PloomberClient:
     """Get notebook client."""
-    return PloomberClient(reads(nb, as_version=NO_CONVERT))
+    return PloomberClient(
+        reads(nb, as_version=NO_CONVERT), display_stdout=display_stdout
+    )
 
 
 class AccessedAttributesVisitor(NodeVisitor):

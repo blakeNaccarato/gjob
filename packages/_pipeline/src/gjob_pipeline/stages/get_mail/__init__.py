@@ -6,25 +6,24 @@ from cappa.base import command
 from pipeline_helper.models import stage
 from pipeline_helper.models.contexts import DirectoryPathSerPosix
 from pipeline_helper.models.params import Params
-from pipeline_helper.models.path import DataFile, DocsFile
+from pipeline_helper.models.path import DataDir
 from pydantic import Field
 
-from gjob_pipeline.models.paths import paths
+from gjob_pipeline.models.paths import DataFile, paths
 
 
-class Deps(stage.NbDeps):
+class Deps(stage.Deps):
     stage: DirectoryPathSerPosix = Path(__file__).parent
-    nb: DocsFile = paths.notebooks[stage.stem]
-    mail: DataFile = paths.mail
+    mboxes: DataDir = paths.mboxes
 
 
 class Outs(stage.Outs):
-    reqs: DataFile = paths.reqs
+    mail: DataFile = paths.mail
 
 
-@command(default_long=True, invoke="gjob_pipeline.stages.convert.__main__.main")
-class Convert(Params[Deps, Outs]):
-    """Get job requisitions from mailboxes."""
+@command(default_long=True, invoke="gjob_pipeline.stages.get_mail.__main__.main")
+class GetMail(Params[Deps, Outs]):
+    """Get mail from mailboxes."""
 
     deps: Ann[Deps, Arg(hidden=True)] = Field(default_factory=Deps)
     outs: Ann[Outs, Arg(hidden=True)] = Field(default_factory=Outs)

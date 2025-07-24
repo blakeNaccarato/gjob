@@ -25,6 +25,7 @@ dependencies = [
   "ruamel-yaml>=0.18.6",
   "seaborn>=0.13.2",
   "sphinx>=7.3.7",
+  "structlog>=25.4.0",
   #? Tests
   "pytest>=8.4.1",
 ]
@@ -34,6 +35,6 @@ gjob-dev = "gjob_dev.__main__:main"
 [tool.fawltydeps]
 deps = ["packages/_dev/pyproject.toml"]
 code = ["packages/_dev", "docs", "tests"]
-ignore_undeclared = ["gjob_dev", "gjob_pipeline", "gjob", "toml"]
+ignore_undeclared = ["gjob_dev", "gjob_pipeline", "gjob", "pipeline_helper", "toml"]
 [tool.fawltydeps.custom_mapping]
 ruamel-yaml = ["ruamel"]

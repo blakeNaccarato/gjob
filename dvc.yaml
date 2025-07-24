@@ -4,12 +4,10 @@ stages:
     deps:
       - packages/_pipeline/src/gjob_pipeline/stages/convert
       - docs/notebooks/convert.ipynb
-      - data/mboxes
+      - data/mail.json
     outs:
-      - data/reqs:
-          cache: false
+      - data/reqs.json:
           persist: true
-          push: false
     params:
       - stage
   example:
@@ -23,12 +21,13 @@ stages:
           persist: true
     params:
       - stage
-  skip_cloud:
-    cmd: pwsh -Command "./j.ps1 gjob-pipeline stage skip-cloud"
+  get_mail:
+    cmd: pwsh -Command "./j.ps1 gjob-pipeline stage get-mail"
+    deps:
+      - packages/_pipeline/src/gjob_pipeline/stages/get_mail
+      - data/mboxes
     outs:
-      - data/mboxes:
-          cache: false
+      - data/mail.json:
           persist: true
-          push: false
     params:
       - stage

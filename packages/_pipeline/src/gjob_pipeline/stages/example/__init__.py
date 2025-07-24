@@ -4,8 +4,9 @@ from typing import Annotated as Ann
 from cappa.arg import Arg
 from cappa.base import command
 from pipeline_helper.models import stage
+from pipeline_helper.models.contexts import DirectoryPathSerPosix
 from pipeline_helper.models.params import Params
-from pipeline_helper.models.path import DataDir, DirectoryPathSerPosix, DocsFile
+from pipeline_helper.models.path import DataDir, DocsFile
 from pydantic import Field
 
 from gjob_pipeline.models.paths import paths

@@ -10,14 +10,14 @@ from pipeline_helper.sync_dvc import SyncDvc
 
 from gjob_pipeline.stages.convert import Convert
 from gjob_pipeline.stages.example import Example
-from gjob_pipeline.stages.skip_cloud import SkipCloud
+from gjob_pipeline.stages.get_mail import GetMail
 
 
 @dataclass
 class Stage:
     """Run a pipeline stage."""
 
-    commands: Subcommands[Example | Convert | SkipCloud]
+    commands: Subcommands[Example | Convert | GetMail]
 
 
 @command(name="gjob-pipeline")
