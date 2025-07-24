@@ -7,27 +7,17 @@ from functools import partial
 from inspect import getsource
 from textwrap import dedent
 from types import SimpleNamespace
-from typing import Any
 
 from cachier import cachier  # pyright: ignore[reportMissingImports]
 from nbformat import NO_CONVERT, reads
 from ploomber_engine._util import parametrize_notebook
 from ploomber_engine.ipython import PloomberClient
-from structlog import get_logger
 
 from pipeline_helper.hashes import hash_args
-from pipeline_helper.models import params
-from pipeline_helper.models.stage import NbDeps, Outs
 from pipeline_helper.types import Attributes, Params, SimpleNamespaceReceiver
-
-log = get_logger()
 
 NO_ATTRS = []
 NO_PARAMS = {}
-
-
-def log_nb(params: params.Params[NbDeps, Outs], **kwds: Any):
-    log.info({"_nb": params.deps.nb, **kwds})
 
 
 def get_ns_attrs(receiver: SimpleNamespaceReceiver) -> list[str]:

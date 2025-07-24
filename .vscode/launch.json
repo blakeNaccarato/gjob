@@ -31,6 +31,13 @@
       "console": "internalConsole"
     },
     {
+      "name": "Python: gjob_pipeline",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "gjob_pipeline",
+      "console": "internalConsole"
+    },
+    {
       "name": "Python: Current file (interactive terminal)",
       "type": "debugpy",
       "request": "launch",
