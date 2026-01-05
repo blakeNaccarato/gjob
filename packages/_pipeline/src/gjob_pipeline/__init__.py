@@ -193,9 +193,11 @@ handlers = {
                         key_style=None,
                         value_style=BRIGHT,
                         reset_style=RESET_ALL,
-                        value_repr=lambda v: default_repr
-                        if len(default_repr := str(v)) < width
-                        else pretty_format(v),
+                        value_repr=lambda v: (
+                            default_repr
+                            if len(default_repr := str(v)) < width
+                            else pretty_format(v)
+                        ),
                     ),
                 ),
                 Column(
